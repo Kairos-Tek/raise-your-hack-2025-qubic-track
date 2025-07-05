@@ -1,0 +1,21 @@
+<div>
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">Dashboard</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
+            <span>Sales</span>
+        </li>
+    </ul>
+    <div class="panel mt-5 h-[calc(100vh-190px)]">
+        <h1>Starter Page</h1>
+
+        <app-loader />
+
+        <ul>
+            <li><a [routerLink]="['/audit/results']" class="text-primary hover:underline">Results Dashboard</a></li>
+            <li><a [routerLink]="['/audit/upload']" class="text-primary hover:underline">Upload Analysis</a></li>
+            <li><a [routerLink]="['/audit/test']" class="text-primary hover:underline">Test Management</a></li>
+        </ul>
+    </div>
+</div>
