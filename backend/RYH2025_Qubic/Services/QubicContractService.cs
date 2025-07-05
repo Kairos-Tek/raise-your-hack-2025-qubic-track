@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RYH2025_Qubic.Dtos;
+using RYH2025_Qubic.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -46,7 +47,7 @@ namespace QubicContractAnalyzer.Services
         /// <summary>
         /// Processes a complete contract: analysis + code generation + security audit
         /// </summary>
-        public async Task<CompleteAnalysisResult> ProcessContractCompleteAsync(
+        public async Task<ContractAnalysis> ProcessContractCompleteAsync(
             string contractCode,
             ProcessingOptions? options = null)
         {
@@ -54,33 +55,23 @@ namespace QubicContractAnalyzer.Services
             {
                 options ??= new ProcessingOptions();
 
-                var result = new CompleteAnalysisResult
-                {
-                    ProcessedAt = DateTime.UtcNow,
-                    Options = options
-                };
+               
+                var contractAnalysis = await AnalyzeContractAsync(contractCode);
 
-                result.ContractAnalysis = await AnalyzeContractAsync(contractCode);
-
-                // 2. Code generation for each method
-                if (options.GenerateCode)
-                {
-                    result.GeneratedCode = await GenerateCodeForAllMethodsAsync(result.ContractAnalysis, options);
-                }
-
+                
                 // 3. Security audit
                 if (options.PerformSecurityAudit)
                 {
-                    result.SecurityAudit = await PerformSecurityAuditAsync(result.ContractAnalysis, contractCode, options);
+                    contractAnalysis.SecurityAudit = await PerformSecurityAuditAsync(contractAnalysis, contractCode, options);
                 }
 
                 // 4. Save results if specified
                 if (!string.IsNullOrEmpty(options.OutputDirectory))
                 {
-                    await SaveResultsAsync(result, options.OutputDirectory);
+                    await SaveResultsAsync(contractAnalysis, options.OutputDirectory);
                 }
 
-                return result;
+                return contractAnalysis;
             }
             catch (Exception ex)
             {
@@ -112,81 +103,6 @@ CRITICAL INSTRUCTIONS:
 
         // ===== CODE GENERATION =====
 
-        public async Task<Dictionary<string, GeneratedCodeFiles>> GenerateCodeForAllMethodsAsync(
-            ContractAnalysis analysis,
-            ProcessingOptions options)
-        {
-            var result = new Dictionary<string, GeneratedCodeFiles>();
-
-            // Process methods in batches to optimize performance
-            var batchSize = Math.Min(options.MaxConcurrentRequests, 3);
-            var methodBatches = analysis.Methods.Chunk(batchSize);
-
-            foreach (var batch in methodBatches)
-            {
-                var tasks = batch.Select(method => GenerateCodeForMethodAsync(method, analysis.ContractName, options));
-                var batchResults = await Task.WhenAll(tasks);
-
-                for (int i = 0; i < batch.Length; i++)
-                {
-                    if (batchResults[i] != null)
-                    {
-                        result[batch[i].Name] = batchResults[i];
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        public async Task<GeneratedCodeFiles> GenerateCodeForMethodAsync(
-            ContractMethod method,
-            string contractName,
-            ProcessingOptions options)
-        {
-            try
-            {
-                var files = new GeneratedCodeFiles { MethodName = method.Name };
-
-                // Generate main payload
-                var payloadPrompt = CreateCodeGenerationPrompt(method, contractName, options);
-                var payloadSystemMessage = @"You are an expert generating TypeScript code for Qubic transactions.
-CRITICAL INSTRUCTIONS:
-- Respond with TypeScript code only
-- No markdown code blocks
-- No explanations or comments outside the code
-- Start response directly with import statements
-- Generate complete, executable TypeScript code";
-
-                files.PayloadCode = await SendGroqRequestAsync<string>(payloadSystemMessage, payloadPrompt);
-
-                // Generate interfaces if requested
-                if (options.GenerateInterfaces)
-                {
-                    files.InterfaceCode = GenerateInterfaceDefinition(method);
-                }
-
-                // Generate helpers if requested
-                if (options.GenerateHelpers)
-                {
-                    var helperPrompt = CreateHelperGenerationPrompt(method, contractName);
-                    files.HelperCode = await SendGroqRequestAsync<string>(payloadSystemMessage, helperPrompt);
-                }
-
-                // Generate validations if requested
-                if (options.GenerateValidations)
-                {
-                    var validationPrompt = CreateValidationGenerationPrompt(method);
-                    files.ValidationCode = await SendGroqRequestAsync<string>(payloadSystemMessage, validationPrompt);
-                }
-
-                return files;
-            }
-            catch (Exception ex)
-            {
-                return new GeneratedCodeFiles { MethodName = method.Name, Error = ex.Message };
-            }
-        }
 
         // ===== SECURITY AUDIT =====
 
@@ -216,11 +132,11 @@ CRITICAL INSTRUCTIONS:
             // Generate test cases for each method
             if (options.GenerateSecurityTests)
             {
-                result.SecurityTests = await GenerateSecurityTestsForMethodsAsync(analysis.Methods, contractCode, options);
+                result.SecurityTests = await GenerateSecurityTestsForMethodsAsync(analysis.Methods.ToList(), contractCode, options);
             }
 
             // Calculate general risk
-            result.OverallRisk = CalculateSecurityRisk(result.Vulnerabilities);
+            result.OverallRisk = CalculateSecurityRisk(result.Vulnerabilities.ToList());
 
             // Generate recommendations
             result.Recommendations = await GenerateSecurityRecommendationsAsync(result);
@@ -228,12 +144,12 @@ CRITICAL INSTRUCTIONS:
             return result;
         }
 
-        public async Task<Dictionary<string, List<SecurityTestCase>>> GenerateSecurityTestsForMethodsAsync(
-            List<ContractMethod> methods,
-            string contractCode,
-            ProcessingOptions options)
+        public async Task<List<SecurityTestCase>> GenerateSecurityTestsForMethodsAsync(
+    List<ContractMethod> methods,
+    string contractCode,
+    ProcessingOptions options)
         {
-            var result = new Dictionary<string, List<SecurityTestCase>>();
+            var result = new List<SecurityTestCase>();
 
             foreach (var method in methods)
             {
@@ -249,11 +165,19 @@ CRITICAL INSTRUCTIONS:
 - Ensure valid JSON syntax";
 
                     var tests = await SendGroqRequestAsync<List<SecurityTestCase>>(testSystemMessage, testPrompt);
-                    result[method.Name] = tests;
+
+                    // Asignar el ID del método a cada test case
+                    foreach (var test in tests)
+                    {
+                        test.ContractMethodId = method.Id;  // Asignar la FK
+                        test.MethodName = method.Name;      // Ya estaba, pero por consistencia
+                    }
+
+                    result.AddRange(tests);
                 }
                 catch (Exception ex)
                 {
-                    result[method.Name] = new List<SecurityTestCase>();
+                    // Log error pero continuar con otros métodos
                 }
             }
 
@@ -548,64 +472,64 @@ Return JSON array with this structure:
         {
             var methodJson = JsonSerializer.Serialize(method, _jsonOptions);
 
-            return $@"Generate security test cases to exploit vulnerabilities in this Qubic method:
+            return $@"Generate security test cases targeting specific variables in this Qubic method:
 
 QUBIC TESTING CONTEXT:
-Qubic security testing requires understanding:
-- Asset and share mechanics
-- Order book operations and state
-- invocationReward fee handling
-- Collection-based storage patterns
-- State synchronization requirements
+Each test must target ONE specific input variable with a malicious value while providing valid values for other variables.
 
-METHOD:
+METHOD TO TEST:
 {methodJson}
 
+INPUT VARIABLES AVAILABLE:
+{string.Join(", ", method.InputStruct.Select(kv => $"{kv.Key} ({kv.Value})"))}
+
+QUBIC-SPECIFIC ATTACK VECTORS BY VARIABLE TYPE:
+- uint/sint variables: Overflow/underflow attacks (0, MAX_VALUE, negative)
+- id variables: Invalid public keys, null bytes, wrong format
+- Array variables: Buffer overflows, empty arrays, oversized arrays
+- Asset variables: Non-existent assets, unauthorized assets
+- Share amounts: Zero shares, negative shares, exceeding balance
+
 CONTRACT CONTEXT:
-{contractCode.Substring(0, Math.Min(1500, contractCode.Length))}...
+{contractCode.Substring(0, Math.Min(1000, contractCode.Length))}...
 
-Generate 3-5 test cases including:
+Generate 3-5 test cases, each targeting a DIFFERENT input variable.
 
-1. QUBIC-SPECIFIC ATTACKS:
-- Share manipulation attempts
-- Order book state corruption
-- Fee bypass attempts
-- Asset ownership spoofing
+For each test case:
+1. Pick ONE specific input variable to attack
+2. Choose a malicious value for that variable
+3. Provide valid default values for all other variables
+4. Explain WHY that specific value is dangerous
 
-2. STANDARD ATTACKS:
-- Basic exploits
-- Edge cases with boundary values
-- Combined attack sequences
-- State corruption attacks
+QUBIC ATTACK CATEGORIES:
+- Share Manipulation: numberOfShares = MAX_UINT64, = 0, = -1
+- Asset Exploitation: assetName = """", issuer = null_id
+- Fee Bypass: invocationReward = 0, = negative
+- Order Book: price = 0, = MAX_VALUE
+- Access Control: targetId = contract_id, = invalid_format
 
-3. TEST CATEGORIES:
-- Asset Tests: Invalid issuer/assetName combinations
-- Order Tests: Manipulated price/volume values
-- Fee Tests: Insufficient or excessive invocationReward
-- State Tests: Concurrent access patterns
-
-For each test case include:
-- Executable test code
-- Specific malicious inputs
-- Expected vs actual behavior
-- Severity level
-- Qubic-specific context
-
-Return JSON array:
+Return JSON array with this exact structure:
 [
   {{
-    ""testName"": ""Test name"",
-    ""description"": ""What it attempts to exploit"",
-    ""vulnerabilityType"": ""Type"",
+    ""testName"": ""Descriptive test name"",
+    ""methodName"": ""{method.Name}"",
+    ""targetVariable"": ""specific_variable_name"",
+    ""description"": ""What vulnerability this test exploits"",
+    ""vulnerabilityType"": ""Integer Overflow"",
     ""severity"": ""Critical"",
-    ""testInputs"": {{""field"": ""malicious_value""}},
-    ""expectedBehavior"": ""Expected behavior"",
-    ""actualRisk"": ""Real risk"",
-    ""testCode"": ""Executable TypeScript code"",
-    ""mitigationSteps"": [""step1"", ""step2""],
-    ""qubicSpecific"": true,
-    ""requiresAssets"": false,
-    ""requiresOrderBook"": false
+    ""targetInput"": {{
+      ""variableName"": ""specific_variable_name"",
+      ""variableType"": ""uint64"",
+      ""maliciousValue"": ""18446744073709551615"",
+      ""attackReason"": ""Causes integer overflow leading to...""
+    }},
+    ""otherInputs"": {{
+      ""otherVar1"": ""valid_default_value"",
+      ""otherVar2"": ""valid_default_value""
+    }},
+    ""expectedBehavior"": ""Should reject transaction"",
+    ""actualRisk"": ""Could drain contract balance"",
+    ""mitigationSteps"": [""Add bounds checking"", ""Validate input ranges""]
   }}
 ]";
         }
@@ -957,41 +881,16 @@ CRITICAL INSTRUCTIONS:
 
         // ===== PERSISTENCE =====
 
-        private async Task SaveResultsAsync(CompleteAnalysisResult result, string outputDirectory)
+        private async Task SaveResultsAsync(ContractAnalysis result, string outputDirectory)
         {
             try
             {
-                var contractDir = Path.Combine(outputDirectory, result.ContractAnalysis.ContractName);
+                var contractDir = Path.Combine(outputDirectory, result.ContractName);
                 Directory.CreateDirectory(contractDir);
 
                 // Save main analysis
                 var analysisPath = Path.Combine(contractDir, "contract_analysis.json");
-                await File.WriteAllTextAsync(analysisPath, JsonSerializer.Serialize(result.ContractAnalysis, _jsonOptions));
-
-                // Save generated code
-                if (result.GeneratedCode.Any())
-                {
-                    var codeDir = Path.Combine(contractDir, "generated");
-                    Directory.CreateDirectory(codeDir);
-
-                    foreach (var (methodName, codeFiles) in result.GeneratedCode)
-                    {
-                        var methodDir = Path.Combine(codeDir, methodName);
-                        Directory.CreateDirectory(methodDir);
-
-                        if (!string.IsNullOrEmpty(codeFiles.PayloadCode))
-                            await File.WriteAllTextAsync(Path.Combine(methodDir, $"{methodName}Payload.ts"), codeFiles.PayloadCode);
-
-                        if (!string.IsNullOrEmpty(codeFiles.InterfaceCode))
-                            await File.WriteAllTextAsync(Path.Combine(methodDir, $"{methodName}Interfaces.ts"), codeFiles.InterfaceCode);
-
-                        if (!string.IsNullOrEmpty(codeFiles.HelperCode))
-                            await File.WriteAllTextAsync(Path.Combine(methodDir, $"{methodName}Helpers.ts"), codeFiles.HelperCode);
-
-                        if (!string.IsNullOrEmpty(codeFiles.ValidationCode))
-                            await File.WriteAllTextAsync(Path.Combine(methodDir, $"{methodName}Validation.ts"), codeFiles.ValidationCode);
-                    }
-                }
+                await File.WriteAllTextAsync(analysisPath, JsonSerializer.Serialize(result, _jsonOptions));
 
                 // Save security audit
                 if (result.SecurityAudit != null)
@@ -1002,20 +901,22 @@ CRITICAL INSTRUCTIONS:
                     var securityPath = Path.Combine(securityDir, "security_audit.json");
                     await File.WriteAllTextAsync(securityPath, JsonSerializer.Serialize(result.SecurityAudit, _jsonOptions));
 
-                    // Save test cases
+                    // Save test cases - CAMBIO AQUÍ
                     if (result.SecurityAudit.SecurityTests.Any())
                     {
                         var testsDir = Path.Combine(securityDir, "tests");
                         Directory.CreateDirectory(testsDir);
 
-                        foreach (var (methodName, tests) in result.SecurityAudit.SecurityTests)
+                        // Agrupar por método para guardar en archivos separados
+                        var testsByMethod = result.SecurityAudit.SecurityTests.GroupBy(t => t.MethodName);
+
+                        foreach (var methodGroup in testsByMethod)
                         {
-                            var testPath = Path.Combine(testsDir, $"{methodName}_security_tests.json");
-                            await File.WriteAllTextAsync(testPath, JsonSerializer.Serialize(tests, _jsonOptions));
+                            var testPath = Path.Combine(testsDir, $"{methodGroup.Key}_security_tests.json");
+                            await File.WriteAllTextAsync(testPath, JsonSerializer.Serialize(methodGroup.ToList(), _jsonOptions));
                         }
                     }
                 }
-
             }
             catch (Exception ex)
             {

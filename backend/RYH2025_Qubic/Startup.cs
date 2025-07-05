@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using RYH2025_Qubic.Persistence;
+
 namespace RYH2025_Qubic;
 
 public class Startup
@@ -13,6 +16,14 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddControllers();
+        services
+                .AddDbContext<ApplicationDbContext>((options) =>
+                {
+                    options.UseNpgsql(Configuration["ConnectionStrings:Default"], o =>
+                    {
+                        o.MigrationsHistoryTable("__EFMigrationsHistory", "raiseyourhack");
+                    });
+                });
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline

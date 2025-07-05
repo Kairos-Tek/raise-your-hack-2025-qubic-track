@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QubicContractAnalyzer.Services;
+using RYH2025_Qubic.Persistence;
 
 namespace RYH2025_Qubic.Controllers;
 
@@ -7,8 +8,10 @@ namespace RYH2025_Qubic.Controllers;
 public class ValuesController : ControllerBase
 {
     private IConfiguration _configuration { get; set; }
-    public ValuesController(IConfiguration configuration) {
+    private ApplicationDbContext _dbContext { get; set; }
+    public ValuesController(IConfiguration configuration,ApplicationDbContext dbContext) {
     _configuration = configuration;
+        _dbContext = dbContext;
     }
     // GET api/values
     [HttpGet]
@@ -22,6 +25,9 @@ public class ValuesController : ControllerBase
                 GenerateCode = true,
                 PerformSecurityAudit = true,
                 OutputDirectory = "C:\\Desarrollo\\Hackathon\\Audits" });
+
+        _dbContext.ContractAnalyses.Add(result);
+        await _dbContext.SaveChangesAsync();
 
         return new string[] { "value1", "value2" };
     }
