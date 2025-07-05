@@ -2353,11 +2353,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025-Qubic\\RYH2025-Qubic\\RYH2025_Qubic.csproj",
+      "projectUniqueName": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\RYH2025_Qubic.csproj",
       "projectName": "RYH2025_Qubic",
-      "projectPath": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025-Qubic\\RYH2025-Qubic\\RYH2025_Qubic.csproj",
+      "projectPath": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\RYH2025_Qubic.csproj",
       "packagesPath": "C:\\Users\\jesus\\.nuget\\packages\\",
-      "outputPath": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025-Qubic\\RYH2025-Qubic\\obj\\",
+      "outputPath": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
