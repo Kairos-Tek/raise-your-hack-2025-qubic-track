@@ -1,7 +1,32 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|c:\\desarrollo\\hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\ryh2025_qubic\\services\\qubiccontractservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|solutionrelative:ryh2025_qubic\\services\\qubiccontractservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|c:\\desarrollo\\hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\ryh2025_qubic\\controllers\\valuescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|solutionrelative:ryh2025_qubic\\controllers\\valuescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|c:\\desarrollo\\hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\ryh2025_qubic\\dtos\\contractmethod.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|solutionrelative:ryh2025_qubic\\dtos\\contractmethod.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|c:\\desarrollo\\hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\ryh2025_qubic\\dtos\\groqapiexception.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|solutionrelative:ryh2025_qubic\\dtos\\groqapiexception.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|c:\\desarrollo\\hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\ryh2025_qubic\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|solutionrelative:ryh2025_qubic\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|c:\\desarrollo\\hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\ryh2025_qubic\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{587C04EF-7F25-4333-A202-6A6B49756676}|RYH2025_Qubic\\RYH2025_Qubic.csproj|solutionrelative:ryh2025_qubic\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,11 +34,89 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "GroqApiException.cs",
+              "DocumentMoniker": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\Dtos\\GroqApiException.cs",
+              "RelativeDocumentMoniker": "RYH2025_Qubic\\Dtos\\GroqApiException.cs",
+              "ToolTip": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\Dtos\\GroqApiException.cs",
+              "RelativeToolTip": "RYH2025_Qubic\\Dtos\\GroqApiException.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-05T09:12:12.364Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ContractMethod.cs",
+              "DocumentMoniker": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\Dtos\\ContractMethod.cs",
+              "RelativeDocumentMoniker": "RYH2025_Qubic\\Dtos\\ContractMethod.cs",
+              "ToolTip": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\Dtos\\ContractMethod.cs",
+              "RelativeToolTip": "RYH2025_Qubic\\Dtos\\ContractMethod.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-05T09:12:02.398Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ValuesController.cs",
+              "DocumentMoniker": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\Controllers\\ValuesController.cs",
+              "RelativeDocumentMoniker": "RYH2025_Qubic\\Controllers\\ValuesController.cs",
+              "ToolTip": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\Controllers\\ValuesController.cs",
+              "RelativeToolTip": "RYH2025_Qubic\\Controllers\\ValuesController.cs",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAkwBMAAABIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-05T08:36:11.773Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\appsettings.json",
+              "RelativeDocumentMoniker": "RYH2025_Qubic\\appsettings.json",
+              "ToolTip": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\appsettings.json",
+              "RelativeToolTip": "RYH2025_Qubic\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-07-05T08:11:35.423Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "QubicContractService.cs",
+              "DocumentMoniker": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\Services\\QubicContractService.cs",
+              "RelativeDocumentMoniker": "RYH2025_Qubic\\Services\\QubicContractService.cs",
+              "ToolTip": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\Services\\QubicContractService.cs",
+              "RelativeToolTip": "RYH2025_Qubic\\Services\\QubicContractService.cs",
+              "ViewState": "AgIAADoAAAAAAAAAAAAIwDAAAAAyAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-07-05T08:00:46.014Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "appsettings.Development.json",
+              "DocumentMoniker": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\appsettings.Development.json",
+              "RelativeDocumentMoniker": "RYH2025_Qubic\\appsettings.Development.json",
+              "ToolTip": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\appsettings.Development.json",
+              "RelativeToolTip": "RYH2025_Qubic\\appsettings.Development.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-07-05T07:50:58.409Z",
+              "EditorCaption": ""
             }
           ]
         }
