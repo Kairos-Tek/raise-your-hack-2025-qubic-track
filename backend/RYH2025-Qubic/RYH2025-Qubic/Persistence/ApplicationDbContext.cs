@@ -1,14 +1,12 @@
-﻿// Data/ApplicationDbContext.cs
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using RYH2025_Qubic.Models;
 using System.Text.Json;
-using RYH2025_Qubic.Models;
 
-namespace ContractAuditSystem.Data
+namespace RYH2025_Qubic.Persistence
 {
-    public class AppDbContext : DbContext
+    public class ApplicationDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
         }
