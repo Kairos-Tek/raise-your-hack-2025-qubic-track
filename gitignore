@@ -10,14 +10,15 @@ frontend/src/environments/*.ts
 backend/**/bin/
 backend/**/obj/
 
+
 # Ignore local and temporary settings
-backend/.vs/
-backend/*.user
-backend/*.suo
+backend/**/.vs/
+backend/**/*.user
+backend/**/*.suo
 
 # Ignore optional local configuration files
-backend/appsettings.Development.json
-backend/appsettings.Local.json
+backend/**/appsettings.Development.json
+backend/**/appsettings.Local.json
 
 # === GLOBAL ===
 *.log
