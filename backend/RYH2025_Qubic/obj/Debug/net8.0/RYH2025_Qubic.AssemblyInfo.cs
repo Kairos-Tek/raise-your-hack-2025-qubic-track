@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RYH2025_Qubic")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f1f810c8df24b583a5e60b207d2c2631d892931d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c01233d812a674a72515ba30f99669ab188dc03b")]
 [assembly: System.Reflection.AssemblyProductAttribute("RYH2025_Qubic")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RYH2025_Qubic")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
