@@ -1,7 +1,7 @@
 export const initialState = {
     isDarkMode: false,
     mainLayout: 'app',
-    theme: 'light',
+    theme: 'dark',
     menu: 'vertical',
     layout: 'full',
     rtlClass: 'ltr',

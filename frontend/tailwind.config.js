@@ -16,6 +16,16 @@ module.exports = {
         },
         extend: {
             colors: {
+                aqua: {
+                    DEFAULT: '#DAFCFB'
+                }, 
+                qdarkblue: {
+                    DEFAULT: '#0E1726',
+                    light: '#1B2E4B',
+                },
+                qdark: {
+                    DEFAULT: '#161921'
+                },
                 accent: {
                     DEFAULT: '#F6DDA3'
                 },

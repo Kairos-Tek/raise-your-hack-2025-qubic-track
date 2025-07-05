@@ -43,6 +43,12 @@ import { UploadAnalysisComponent } from './features/contract-audit/pages/upload-
 import { TestManagementComponent } from './features/contract-audit/pages/test-management/test-management.component';
 import { IconMenuAnalyticsComponent } from './shared/icon/menu/icon-menu-analytics';
 import { IconDiamondComponent } from './shared/icon/icon-diamond';
+import { IconUploadComponent } from './shared/icon/icon-upload';
+import { IconBrainComponent } from './shared/icon/icon-brain';
+import { PrimaryButtonComponent } from './shared/components/primary-button/primary-button.component';
+import { BlockquoteComponent } from './shared/components/blockquote/blockquote.component';
+import { IconTestComponent } from './shared/icon/icon-test';
+import { CardComponent } from './shared/components/card/card.component';
 
 @NgModule({
     imports: [
@@ -76,7 +82,13 @@ import { IconDiamondComponent } from './shared/icon/icon-diamond';
         UploadAnalysisComponent,
         TestManagementComponent,
         IconMenuAnalyticsComponent,
-        IconDiamondComponent
+        IconDiamondComponent,
+        IconUploadComponent,
+        IconBrainComponent,
+        PrimaryButtonComponent,
+        BlockquoteComponent,
+        IconTestComponent,
+        CardComponent
     ],
     providers: [Title],
     bootstrap: [AppComponent],
