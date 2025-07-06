@@ -1,12 +1,3 @@
-/*********************************************************************************************/
-/* HACKATON: Raise Your Hack (4-8 July 2025)                                                 */
-/* TEAM: Kairos                                                                              */
-/* ABSTRACT: This contract is specifically designed for the development of our Qbuild audit  */
-/*           tool. The objective is to identify potential problems, vulnerabilities and DoS, */
-/*           as well as being able to force them by sending the appropriate parameters from  */
-/*           Qbuild web page.                                                                */
-/*********************************************************************************************/
-
 using namespace QPI;
 
 struct HM252
@@ -16,9 +7,6 @@ struct HM252
 struct HM25 : public ContractBase
 {
 public:
-
-// PROCEDURES
-
     struct proc01_input{};
     struct proc01_output{};
     
@@ -34,63 +22,46 @@ public:
     struct proc05_input{};
     struct proc05_output{};
 
-// FUNCTIONS
-
-    struct func01_input
-    {
-      sint64 input1;
-    };
+    struct func01_input{};
     struct func01_output
     {
-        uint8 output1;
+        uint64 var1;
     };
     
-    struct func02_input{
-        sint8 input2;
-    };
+    struct func02_input{};
     struct func02_output
     {
-        uint8 output2;
+        uint64 var2;
     };
 
-    struct func03_input{
-        sint64 input31;
-        char* input32;
-    };
+    struct func03_input{};
     struct func03_output
     {
-        uint64 output3;
+        uint64 var3;
     };
 
-    struct func04_input{
-        bool input4;
-    };
+    struct func04_input{};
     struct func04_output
     {
-        bool output4;
+        uint64 var4;
     };
 
-    struct func05_input{
-        char* input51;
-        uint64 input52;
-    };
+    struct func05_input{};
     struct func05_output
     {
-        uint8 var5;
+        uint64 var5;
     };
 
 private:
+    uint64 var0;
+    uint64 var1;
+    uint64 var2;
+    uint64 var3;
+    uint64 var4;
+    uint64 var5;
 
-// We define uint8 to facilitate bad things happening...
-    uint8 var0;
-    uint8 var1;
-    uint8 var2;
-    uint8 var3;
-    uint8 var4;
-    uint8 var5;
-
-    PUBLIC_PROCEDURE(proc01) 
-        //state.var1 = input.input1;
+    PUBLIC_PROCEDURE(proc01) // Overflow risk
+        state.var1 = state.var1 * state.var2 * state.var3 * state.var4 * state.var5;
    _
 
     PUBLIC_PROCEDURE(proc02) // Infinite loop until overflow
@@ -112,8 +83,8 @@ private:
         // proc04();
    _
 
-    PUBLIC_FUNCTION(func01)  // Overflow risk, input1 parameter is sint64 and var1 is uint8
-        state.var1 = input.input1;
+    PUBLIC_FUNCTION(func01)  // Overflow
+        output.var1 = state.var2 + state.var3 + state.var4 + state.var5;
     _
 
     PUBLIC_FUNCTION(func02)  // Infinite loop until overflow
@@ -127,7 +98,6 @@ private:
 
     PUBLIC_FUNCTION(func04) // Infinite call between func04 and func05
         output.var4++;
-        return qpi.func1(var4);
         //return func05();
     _
 
