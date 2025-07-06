@@ -17,7 +17,7 @@ export const routes: Routes = [
             { path: '', component: IndexComponent, data: { title: 'Q-Audit' } },
             { path: 'audit/results', component: ResultsDashboardComponent, data: { title: 'Results Dashboard' } },
             { path: 'audit/upload', component: UploadAnalysisComponent, data: { title: 'Upload Analysis' } },
-            { path: 'audit/test', component: TestManagementComponent, data: { title: 'Test Management' } },
+            { path: 'audit/test/:contractId', component: TestManagementComponent, data: { title: 'Test Management' } },
 
         ],
     },

@@ -1,1 +1,59 @@
-<h2>Upload Analysis</h2>
+<div class="panel">
+    <h2 class="font-semibold text-lg text-white">New Analysis</h2>
+
+    <section class="mt-4">
+        <form [formGroup]="form" class="flex flex-col gap-4 items-end" (submit)="onSubmit()" novalidate>
+            <div class="flex flex-col gap-1 w-full">
+                <label for="name-audit" class="mb-2 font-medium">Name Audit</label>
+                <input id="name-audit" type="text" placeholder="Enter a name..." class="form-input" required formControlName="nameAudit" />
+                <div *ngIf="form.get('nameAudit')?.invalid && form.get('nameAudit')?.touched" class="text-red-400 text-xs">This field is required.</div>
+            </div>
+
+            <div class="flex flex-col gap-1 w-full">
+                <div
+                    class="grid place-items-center min-h-[234px] border-[2px] border-dashed border-gray-600 rounded p-6 text-center cursor-pointer hover:border-gray-400 transition"
+                    (change)="onFileChange($event)"
+                    onclick="document.getElementById('file-upload').click();"
+                    ondragover="event.preventDefault(); this.classList.add('border-blue-500');"
+                    ondragleave="this.classList.remove('border-blue-500');"
+                    ondrop="event.preventDefault(); document.getElementById('file-upload').files = event.dataTransfer.files; this.classList.remove('border-blue-500');"
+                >
+                    <input id="file-upload" type="file" class="hidden" required accept=".cpp,.h,.txt" />
+
+                    <div *ngIf="uploaded" class="flex flex-col items-center justify-center gap-1">
+                        <icon-file class="w-11 h-11 text-white"></icon-file>
+                        <span class="text-gray-400 text-sm">{{ fileName }}</span>
+                        <span class="text-success font-bold text-base">File uploaded successfully. Ready for analysis.</span>
+                    </div>
+                    <div *ngIf="!uploaded" class="flex flex-col items-center justify-center gap-1">
+                        <icon-upload class="w-11 h-11 text-white"></icon-upload>
+                        <span class="text-gray-400 text-sm">Supports Qubic smart contract files written in C++</span>
+                        <span class="text-white font-bold text-base">Drag your .cpp file here or click to select.</span>
+                    </div>
+                </div>
+            </div>
+
+            <app-primary-button type="submit" [disabled]="form.invalid || isLoading" [loading]="isLoading" text="Analyze with AI">
+                <icon-brain class="w-6 h-6" />
+            </app-primary-button>
+        </form>
+    </section>
+
+    <hr class="my-10 border-gray-600" *ngIf="contractData"/>
+
+    <section class="flex flex-col gap-6 mt-8" *ngIf="contractData">
+        <h2 class="font-semibold text-lg text-white">Analysis Smart Contract</h2>
+
+        <app-blockquote [title]="'General Diagnosis'" [content]="contractData.summary"></app-blockquote>
+
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <li *ngFor="let method of contractData.methods">
+                <app-card [title]="method.signature" [description]="method.description" />
+            </li>
+        </ul>
+
+        <app-primary-button type="button" [disabled]="false" [loading]="false" (click)="generateTestCases()" text="Generate Test Cases">
+            <icon-test class="w-6 h-6" />
+        </app-primary-button>
+    </section>
+</div>
