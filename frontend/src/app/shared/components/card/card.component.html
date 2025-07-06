@@ -1,8 +1,12 @@
 <div class="flex flex-col gap-2 p-4 border rounded-md bg-qdarkblue border-qdarkblue-light min-h-[120px]">
-    
-    <h4 class="font-semibold text-lg">
+    <h3 class="font-semibold">
         <pre>{{ title }}</pre>
-    </h4>
+    </h3>
+    <!-- CHUS -->
+    <!-- <h4 class="font-semibold text-lg">
+        <pre>{{ subtitle }}</pre>
+    </h4> -->
+    <pre class="font-semibold text-lg whitespace-pre-wrap break-words">{{ subtitle }}</pre>
 
     <p class="text-sm overflow-hidden text-ellipsis line-clamp-2">
         {{ description }}

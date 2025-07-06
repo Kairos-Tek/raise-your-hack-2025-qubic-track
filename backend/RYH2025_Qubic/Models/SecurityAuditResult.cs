@@ -10,9 +10,6 @@ namespace RYH2025_Qubic.Models
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        // Foreign Key
-        public Guid CompleteAnalysisResultId { get; set; }
-
         public string ContractName { get; set; } = string.Empty;
         public DateTime AuditDate { get; set; } = DateTime.UtcNow;
 

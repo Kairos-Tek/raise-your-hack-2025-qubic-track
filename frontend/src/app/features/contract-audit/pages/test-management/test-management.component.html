@@ -3,7 +3,25 @@
 
     <p>Managing test cases for contract ID: {{ contractId }}</p>
 
-    <pre>
-        {{ contractData | json }}
-    </pre>
+
+    <ng-container *ngIf="contractAnalysis">
+        <p class="text-gray-400">No contract analysis available.</p>
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <li *ngFor="let method of contractAnalysis.methods">
+                <app-card [title]="method.type" [subtitle]="getCardSubtitle(method)"
+                    [description]="method.description" />
+                <ul>
+                    <li *ngFor="let testCase of getSecurityTestCases(method)">
+                        <h4>{{testCase.testName}}</h4>
+                        <app-primary-button type="button" [disabled]="false" [loading]="false"
+                            (click)="executeTestCase(testCase, method)" text="Execute">
+                            <icon-test class="w-6 h-6" />
+                        </app-primary-button>
+                        <pre></pre>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </ng-container>
+
 </div>

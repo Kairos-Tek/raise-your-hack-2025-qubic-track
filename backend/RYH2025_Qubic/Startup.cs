@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RYH2025_Qubic.Persistence;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace RYH2025_Qubic;
 
@@ -24,6 +26,16 @@ public class Startup
                         o.MigrationsHistoryTable("__EFMigrationsHistory", "raiseyourhack");
                     });
                 });
+        services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+            options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
+            options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.AllowReadingFromString;
+        });
+
+
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline
@@ -33,6 +45,14 @@ public class Startup
         {
             app.UseDeveloperExceptionPage();
         }
+
+
+        app.UseCors(options =>
+        {
+            options.AllowAnyHeader();
+            options.AllowAnyMethod();
+            options.AllowAnyOrigin();
+        });
 
         app.UseHttpsRedirection();
 

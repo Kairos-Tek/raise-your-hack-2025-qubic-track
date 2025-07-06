@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using QubicContractAnalyzer.Services;
 using RYH2025_Qubic.Persistence;
+using RYH2025_Qubic.Services;
 
 namespace RYH2025_Qubic.Controllers;
 

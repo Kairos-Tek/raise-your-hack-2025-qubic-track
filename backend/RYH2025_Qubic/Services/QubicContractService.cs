@@ -13,7 +13,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace QubicContractAnalyzer.Services
+namespace RYH2025_Qubic.Services
 {
     /// <summary>
     /// Unified service for Qubic contract analysis, code generation, and security auditing using Groq
@@ -34,12 +34,7 @@ namespace QubicContractAnalyzer.Services
             _httpClient.BaseAddress = new Uri(_config.BaseUrl);
             _httpClient.Timeout = TimeSpan.FromSeconds(_config.TimeoutSeconds);
 
-            _jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-                WriteIndented = true
-            };
+            
         }
 
         // ===== MAIN METHOD - COMPLETE PROCESSING =====
@@ -83,7 +78,7 @@ namespace QubicContractAnalyzer.Services
 
         public async Task<ContractAnalysis> AnalyzeContractAsync(string contractCode)
         {
-            var prompt = CreateContractAnalysisPrompt(contractCode);
+            var prompt = Prompts.CreateContractAnalysisPrompt(contractCode);
             var systemMessage = @"You are an expert analyzing Qubic smart contracts. 
 CRITICAL INSTRUCTIONS:
 - Respond with raw JSON only
@@ -119,15 +114,8 @@ CRITICAL INSTRUCTIONS:
 
             // General vulnerability analysis
             var auditPrompt = CreateSecurityAuditPrompt(contractCode, analysis);
-            var auditSystemMessage = @"You are an expert smart contract security auditor specialized in Qubic.
-CRITICAL INSTRUCTIONS:
-- Respond with raw JSON array only
-- No markdown code blocks
-- No explanations or comments
-- Start response directly with [ character
-- Ensure valid JSON syntax";
-
-            result.Vulnerabilities = await SendGroqRequestAsync<List<VulnerabilityFound>>(auditSystemMessage, auditPrompt);
+           
+            result.Vulnerabilities = await SendGroqRequestAsync<List<VulnerabilityFound>>(Prompts.GetSystemMessage(), auditPrompt);
 
             // Generate test cases for each method
             if (options.GenerateSecurityTests)
@@ -155,16 +143,8 @@ CRITICAL INSTRUCTIONS:
             {
                 try
                 {
-                    var testPrompt = CreateSecurityTestPrompt(method, contractCode);
-                    var testSystemMessage = @"You are an expert in security testing for Qubic smart contracts.
-CRITICAL INSTRUCTIONS:
-- Respond with raw JSON array only
-- No markdown code blocks
-- No explanations or comments
-- Start response directly with [ character
-- Ensure valid JSON syntax";
-
-                    var tests = await SendGroqRequestAsync<List<SecurityTestCase>>(testSystemMessage, testPrompt);
+                    var testPrompt = Prompts.CreateSecurityTestPrompt(method, contractCode);
+                    var tests = await SendGroqRequestAsync<List<SecurityTestCase>>(Prompts.GetSystemMessage(), testPrompt);
 
                     // Asignar el ID del método a cada test case
                     foreach (var test in tests)
@@ -571,7 +551,9 @@ Return JSON array with this structure:
         {
             var methodJson = JsonSerializer.Serialize(method, _jsonOptions);
 
-            return $@"Generate security test cases targeting specific variables in this Qubic method:
+            return $@"Generate security test cases with ACTUAL MALICIOUS VALUES for this Qubic method:
+
+CRITICAL REQUIREMENT: You must provide SPECIFIC MALICIOUS VALUES for each test case, not empty objects.
 
 QUBIC TESTING CONTEXT:
 Each test must target ONE specific input variable with a malicious value while providing valid values for other variables.
@@ -582,55 +564,119 @@ METHOD TO TEST:
 INPUT VARIABLES AVAILABLE:
 {string.Join(", ", method.InputStruct.Select(kv => $"{kv.Key} ({kv.Value})"))}
 
-QUBIC-SPECIFIC ATTACK VECTORS BY VARIABLE TYPE:
-- uint/sint variables: Overflow/underflow attacks (0, MAX_VALUE, negative)
-- id variables: Invalid public keys, null bytes, wrong format
-- Array variables: Buffer overflows, empty arrays, oversized arrays
-- Asset variables: Non-existent assets, unauthorized assets
-- Share amounts: Zero shares, negative shares, exceeding balance
+QUBIC ATTACK VALUE MAPPINGS:
+
+1. INTEGER OVERFLOW ATTACKS:
+   - uint8: ""255"" (MAX_UINT8)
+   - uint16: ""65535"" (MAX_UINT16)  
+   - uint32: ""4294967295"" (MAX_UINT32)
+   - uint64: ""18446744073709551615"" (MAX_UINT64)
+   - sint64: ""9223372036854775807"" (MAX_INT64)
+
+2. INTEGER UNDERFLOW ATTACKS:
+   - Any signed type: ""-1"", ""-999999999""
+   - Any unsigned type: ""-1"" (should cause underflow)
+
+3. ZERO VALUE ATTACKS:
+   - All numeric types: ""0""
+
+4. PUBLIC KEY ATTACKS:
+   - Invalid format: ""INVALID_KEY_FORMAT_TOO_SHORT""
+   - Null bytes: ""AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""
+   - Wrong length: ""WRONG_LENGTH_KEY""
+   - All zeros: ""AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""
+   - Malicious pattern: ""EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE""
+
+5. ARRAY ATTACKS:
+   - Empty array: []
+   - Oversized array: [1,2,3,...,999] (if array has size limit)
+   - Null elements: [null, null, null]
+
+6. VALID DEFAULT VALUES (for non-target fields):
+   - uint64: ""1000""
+   - id (PublicKey): ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
+   - bool: true
+   - Arrays: appropriate default arrays
+
+ATTACK SCENARIOS BY VULNERABILITY TYPE:
+
+INTEGER OVERFLOW: Target numeric fields with MAX values
+INTEGER UNDERFLOW: Target signed fields with negative values  
+SHARE MANIPULATION: Target amount/share fields with 0, negative, or MAX values
+ACCESS CONTROL: Target id fields with invalid public keys
+INVALID INPUT: Target any field with malformed data
+REENTRANCY: Test with valid inputs but document the reentrancy concern
+DOS: Target with values that could cause excessive computation
+
+REQUIRED TEST CASE FORMAT:
+Generate 2-4 test cases for this method. Each test MUST include:
+
+1. targetInput with ACTUAL malicious value
+2. otherInputs with VALID default values for all other fields
+3. Clear explanation of the attack
 
 CONTRACT CONTEXT:
 {contractCode.Substring(0, Math.Min(1000, contractCode.Length))}...
 
-Generate 3-5 test cases, each targeting a DIFFERENT input variable.
-
-For each test case:
-1. Pick ONE specific input variable to attack
-2. Choose a malicious value for that variable
-3. Provide valid default values for all other variables
-4. Explain WHY that specific value is dangerous
-
-QUBIC ATTACK CATEGORIES:
-- Share Manipulation: numberOfShares = MAX_UINT64, = 0, = -1
-- Asset Exploitation: assetName = """", issuer = null_id
-- Fee Bypass: invocationReward = 0, = negative
-- Order Book: price = 0, = MAX_VALUE
-- Access Control: targetId = contract_id, = invalid_format
-
-Return JSON array with this exact structure:
+EXAMPLE OUTPUT FORMAT (follow this EXACTLY):
 [
   {{
-    ""testName"": ""Descriptive test name"",
+    ""testName"": ""Integer Overflow Attack on Amount"",
     ""methodName"": ""{method.Name}"",
-    ""targetVariable"": ""specific_variable_name"",
-    ""description"": ""What vulnerability this test exploits"",
+    ""targetVariable"": ""amount"",
+    ""description"": ""Tests integer overflow by providing maximum uint64 value"",
     ""vulnerabilityType"": ""Integer Overflow"",
     ""severity"": ""Critical"",
-    ""targetInput"": {{
-      ""variableName"": ""specific_variable_name"",
-      ""variableType"": ""uint64"",
-      ""maliciousValue"": ""18446744073709551615"",
-      ""attackReason"": ""Causes integer overflow leading to...""
+    ""testInputs"": {{
+      ""targetInput"": {{
+        ""variableName"": ""amount"",
+        ""variableType"": ""uint64"",
+        ""maliciousValue"": ""18446744073709551615"",
+        ""attackReason"": ""Maximum uint64 value causes integer overflow in arithmetic operations""
+      }},
+      ""otherInputs"": {{
+        ""user"": ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
+      }}
     }},
-    ""otherInputs"": {{
-      ""otherVar1"": ""valid_default_value"",
-      ""otherVar2"": ""valid_default_value""
+    ""expectedBehavior"": ""Should reject transaction with overflow protection"",
+    ""actualRisk"": ""Could manipulate balances or drain contract funds"",
+    ""mitigationSteps"": [""Add SafeMath library"", ""Implement bounds checking"", ""Validate input ranges before operations""]
+  }},
+  {{
+    ""testName"": ""Zero Amount Attack"",
+    ""methodName"": ""{method.Name}"",
+    ""targetVariable"": ""amount"",
+    ""description"": ""Tests zero amount handling"",
+    ""vulnerabilityType"": ""Share Manipulation"",
+    ""severity"": ""Medium"",
+    ""testInputs"": {{
+      ""targetInput"": {{
+        ""variableName"": ""amount"",
+        ""variableType"": ""uint64"",
+        ""maliciousValue"": ""0"",
+        ""attackReason"": ""Zero amounts can bypass business logic or waste gas""
+      }},
+      ""otherInputs"": {{
+        ""user"": ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
+      }}
     }},
-    ""expectedBehavior"": ""Should reject transaction"",
-    ""actualRisk"": ""Could drain contract balance"",
-    ""mitigationSteps"": [""Add bounds checking"", ""Validate input ranges""]
+    ""expectedBehavior"": ""Should reject zero amount transactions"",
+    ""actualRisk"": ""Could waste contract resources or bypass validations"",
+    ""mitigationSteps"": [""Add minimum amount validation"", ""Implement zero-check guards""]
   }}
-]";
+]
+
+CRITICAL INSTRUCTIONS:
+- testInputs MUST contain actual values, not empty objects
+- targetInput.maliciousValue MUST be a specific string value 
+- otherInputs MUST contain valid values for ALL other input fields
+- Generate tests that actually exploit the specific vulnerability type
+- Focus on values that would cause real security issues in Qubic
+
+INPUT FIELD ANALYSIS FOR {method.Name}:
+{string.Join("\n", method.InputStruct.Select(kv => $"- {kv.Key}: {kv.Value} (provide valid default if not target)"))}
+
+Generate test cases with REAL malicious values that can be used directly in transactions.";
         }
 
         private string CreateHelperGenerationPrompt(ContractMethod method, string contractName)

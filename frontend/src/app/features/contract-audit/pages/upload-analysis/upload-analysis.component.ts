@@ -4,6 +4,8 @@ import { ContractService } from 'src/app/service/contract.service';
 import { Contract } from 'src/app/shared/models/contract.models';
 import { AnalyzeContractRequest } from 'src/app/shared/models/requests.models';
 import { Router } from '@angular/router';
+import { ContractAnalysis } from 'src/app/shared/models/contract-analysis.model';
+import { ContractMethod } from 'src/app/shared/models/contract-method.models';
 
 @Component({
     selector: 'app-upload-analysis',
@@ -16,15 +18,28 @@ export class UploadAnalysisComponent {
     fileExtension: string | null = null;
     isLoading = false;
     contractData: Contract | null = null;
+    contractAnalysis: ContractAnalysis | null = null;
 
     constructor(
         private contractService: ContractService,
         private fb: FormBuilder,
-        private router: Router
+        private router: Router,
     ) {
         this.form = this.fb.group({
             nameAudit: ['', Validators.required],
             file: [null, Validators.required],
+        });
+
+        this.contractService.analyzeMockContract().subscribe({
+            next: (contract) => {
+                this.contractData = contract;
+            },
+        });
+        this.contractService.getContract('817e23e8-2900-4f61-9bdc-e570397a34b5').subscribe({
+            next: (contract) => {
+                debugger;
+                this.contractAnalysis = contract;
+            },
         });
     }
 
@@ -61,10 +76,11 @@ export class UploadAnalysisComponent {
         this.isLoading = true;
         const request: AnalyzeContractRequest = { file };
         this.contractService.analyzeContract(request).subscribe({
-            next: (contract) => {
-                console.log('Contract analyzed successfully:', contract);
+            next: (contractAnalysis) => {
+                console.log('Contract analyzed successfully:', contractAnalysis);
                 this.isLoading = false;
-                this.contractData = contract;
+                debugger;
+                this.contractAnalysis = contractAnalysis;
             },
             error: (error) => {
                 console.error('Error analyzing contract:', error);
@@ -74,8 +90,12 @@ export class UploadAnalysisComponent {
     }
 
     generateTestCases() {
-      if (this.contractData) {
-        this.router.navigate(['/audit/test', this.contractData.id]);
-      }
+        if (this.contractAnalysis) {
+            this.router.navigate(['/audit/test', this.contractAnalysis.id]);
+        }
     }
-  }
+
+    getCardSubtitle(method: ContractMethod): string {
+        return `${method.name}(${method.inputFields.map((f) => `${f.name} ${f.qubicType}`).join(', ')}) : ${method.outputFields.map((f) => `${f.name} ${f.qubicType}`).join(', ')}`;
+    }
+}

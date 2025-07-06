@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace RYH2025_Qubic.Models
 {
@@ -31,10 +32,11 @@ namespace RYH2025_Qubic.Models
         [Column(TypeName = "jsonb")]
         public string MitigationStepsJson { get; set; } = "[]";
 
-        // Navigation properties
+        [JsonIgnore]
         [ForeignKey("SecurityAuditResultId")]
         public virtual SecurityAuditResult SecurityAuditResult { get; set; } = null!;
 
+        [JsonIgnore]
         [ForeignKey("ContractMethodId")]
         public virtual ContractMethod ContractMethod { get; set; } = null!;
 
