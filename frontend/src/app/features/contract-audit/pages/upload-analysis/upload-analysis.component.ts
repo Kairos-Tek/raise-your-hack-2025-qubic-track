@@ -35,12 +35,6 @@ export class UploadAnalysisComponent {
                 this.contractData = contract;
             },
         });
-        this.contractService.getContract('817e23e8-2900-4f61-9bdc-e570397a34b5').subscribe({
-            next: (contract) => {
-                debugger;
-                this.contractAnalysis = contract;
-            },
-        });
     }
 
     onFileChange(event: Event) {

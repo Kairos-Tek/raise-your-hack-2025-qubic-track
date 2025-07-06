@@ -34,7 +34,12 @@ namespace RYH2025_Qubic.Services
             _httpClient.BaseAddress = new Uri(_config.BaseUrl);
             _httpClient.Timeout = TimeSpan.FromSeconds(_config.TimeoutSeconds);
 
-            
+            _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                WriteIndented = true
+            };
         }
 
         // ===== MAIN METHOD - COMPLETE PROCESSING =====
@@ -79,16 +84,8 @@ namespace RYH2025_Qubic.Services
         public async Task<ContractAnalysis> AnalyzeContractAsync(string contractCode)
         {
             var prompt = Prompts.CreateContractAnalysisPrompt(contractCode);
-            var systemMessage = @"You are an expert analyzing Qubic smart contracts. 
-CRITICAL INSTRUCTIONS:
-- Respond with raw JSON only
-- No markdown code blocks 
-- No explanations or comments
-- No additional text before or after JSON
-- Start response directly with { character
-- Ensure valid JSON syntax";
 
-            var response = await SendGroqRequestAsync<ContractAnalysis>(systemMessage, prompt);
+            var response = await SendGroqRequestAsync<ContractAnalysis>(Prompts.GetSystemMessage(), prompt);
 
             // Validate and enrich the analysis
             ValidateAndEnrichAnalysis(response, contractCode);
@@ -113,7 +110,7 @@ CRITICAL INSTRUCTIONS:
             };
 
             // General vulnerability analysis
-            var auditPrompt = CreateSecurityAuditPrompt(contractCode, analysis);
+            var auditPrompt = Prompts.CreateSecurityAuditPrompt(contractCode, analysis);
            
             result.Vulnerabilities = await SendGroqRequestAsync<List<VulnerabilityFound>>(Prompts.GetSystemMessage(), auditPrompt);
 
@@ -146,11 +143,14 @@ CRITICAL INSTRUCTIONS:
                     var testPrompt = Prompts.CreateSecurityTestPrompt(method, contractCode);
                     var tests = await SendGroqRequestAsync<List<SecurityTestCase>>(Prompts.GetSystemMessage(), testPrompt);
 
-                    // Asignar el ID del método a cada test case
+                    // Validar y limpiar los test cases
                     foreach (var test in tests)
                     {
-                        test.ContractMethodId = method.Id;  // Asignar la FK
-                        test.MethodName = method.Name;      // Ya estaba, pero por consistencia
+                        test.ContractMethodId = method.Id;
+                        test.MethodName = method.Name;
+
+                        // VALIDACIÓN CRÍTICA: Verificar consistencia con parámetros reales
+                        ValidateTestCaseParameters(test, method);
                     }
 
                     result.AddRange(tests);
@@ -158,13 +158,107 @@ CRITICAL INSTRUCTIONS:
                 catch (Exception ex)
                 {
                     // Log error pero continuar con otros métodos
+                    Console.WriteLine($"Error generating tests for method {method.Name}: {ex.Message}");
                 }
             }
 
             return result;
         }
 
-        // ===== GROQ COMMUNICATION =====
+        private void ValidateTestCaseParameters(SecurityTestCase testCase, ContractMethod method)
+        {
+            var hasInputParams = method.InputStruct.Any();
+
+            if (!hasInputParams)
+            {
+                // El método no tiene parámetros: testInputs debe estar vacío
+                var currentTestInputs = testCase.TestInputs;
+
+                if (currentTestInputs?.ContainsKey("targetInput") == true ||
+                    currentTestInputs?.ContainsKey("otherInputs") == true)
+                {
+                    // Limpiar parámetros incorrectos - solo mantener estructura vacía
+                    testCase.TestInputs = new Dictionary<string, object>();
+
+                    // Ajustar descripción y campos
+                    testCase.Description = $"Tests internal logic vulnerabilities in {method.Name} (no input parameters)";
+                    testCase.VulnerabilityType = "Internal Logic";
+                    testCase.TargetVariable = "internal_state";
+
+                    Console.WriteLine($"INFO: Cleaned test inputs for method '{method.Name}' with no parameters");
+                }
+            }
+            else
+            {
+                // El método tiene parámetros: validar estructura testInputs
+                var currentTestInputs = testCase.TestInputs;
+
+                if (currentTestInputs != null)
+                {
+                    // Validar targetInput si existe
+                    if (currentTestInputs.ContainsKey("targetInput"))
+                    {
+                        var targetInput = currentTestInputs["targetInput"];
+                        if (targetInput != null)
+                        {
+                            var targetInputDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
+                                System.Text.Json.JsonSerializer.Serialize(targetInput));
+
+                            if (targetInputDict?.ContainsKey("variableName") == true)
+                            {
+                                var variableName = targetInputDict["variableName"]?.ToString();
+                                if (!string.IsNullOrEmpty(variableName) && !method.InputStruct.ContainsKey(variableName))
+                                {
+                                    // El parámetro objetivo no existe - reemplazar con el primer parámetro real
+                                    var firstRealParam = method.InputStruct.First();
+                                    targetInputDict["variableName"] = firstRealParam.Key;
+                                    targetInputDict["variableType"] = firstRealParam.Value;
+                                    testCase.TargetVariable = firstRealParam.Key;
+
+                                    // Actualizar el objeto
+                                    currentTestInputs["targetInput"] = targetInputDict;
+                                    testCase.TestInputs = currentTestInputs;
+
+                                    Console.WriteLine($"WARNING: Fixed invalid parameter '{variableName}' in test '{testCase.TestName}' for method '{method.Name}'");
+                                }
+                            }
+                        }
+                    }
+
+                    // Validar otherInputs si existe
+                    if (currentTestInputs.ContainsKey("otherInputs"))
+                    {
+                        var otherInputs = currentTestInputs["otherInputs"];
+                        if (otherInputs != null)
+                        {
+                            var otherInputsDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
+                                System.Text.Json.JsonSerializer.Serialize(otherInputs));
+
+                            if (otherInputsDict != null)
+                            {
+                                var invalidParams = otherInputsDict.Keys
+                                    .Where(key => !method.InputStruct.ContainsKey(key))
+                                    .ToList();
+
+                                foreach (var invalidParam in invalidParams)
+                                {
+                                    otherInputsDict.Remove(invalidParam);
+                                    Console.WriteLine($"WARNING: Removed invalid parameter '{invalidParam}' from test '{testCase.TestName}' for method '{method.Name}'");
+                                }
+
+                                // Actualizar si hubo cambios
+                                if (invalidParams.Any())
+                                {
+                                    currentTestInputs["otherInputs"] = otherInputsDict;
+                                    testCase.TestInputs = currentTestInputs;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
 
         private async Task<T> SendGroqRequestAsync<T>(string systemMessage, string userMessage)
         {
@@ -216,511 +310,252 @@ CRITICAL INSTRUCTIONS:
             }
         }
 
-        // ===== PROMPT GENERATION =====
-
-        // Enhanced CreateContractAnalysisPrompt method in QubicContractService.cs
-
-        private string CreateContractAnalysisPrompt(string contractCode)
-        {
-            return $@"Analyze this Qubic smart contract and extract its structure INCLUDING EXACT BYTE SIZES for dynamic transaction generation:
-
-QUBIC BLOCKCHAIN CONTEXT:
-Qubic is a feeless blockchain that uses smart contracts written in C++ that inherit from ContractBase. Key concepts:
-- Assets are managed through shares with ownership and possession
-- Transactions require invocationReward (QUs) for execution fees
-- Functions are read-only queries, Procedures modify state
-- Order book system for trading assets (ask/bid orders)
-- State is managed through Collection data structures
-- Each contract has specific indices for function/procedure registration
-
-CONTRACT CODE:
-{contractCode}
-
-QUBIC DATA TYPES AND THEIR EXACT BYTE SIZES:
-- uint8 → 1 byte
-- uint16 → 2 bytes  
-- uint32 → 4 bytes
-- uint64 → 8 bytes
-- sint8 → 1 byte
-- sint16 → 2 bytes
-- sint32 → 4 bytes
-- sint64 → 8 bytes
-- id → 32 bytes (public key identifier)
-- bool → 1 byte
-- char → 1 byte
-- Array<T, N> → sizeof(T) * N bytes
-- Collection<T, N> → Variable size (not included in transaction payload)
-
-TYPESCRIPT TYPE MAPPING FOR FRONTEND:
-- uint8, uint16, uint32, uint64, sint8, sint16, sint32, sint64 → Long
-- id → PublicKey
-- bool → boolean
-- char → string
-- Array<T, N> → Array<TypeScriptType>
-
-REQUIRED ANALYSIS:
-1. Contract name and namespace
-2. ALL PUBLIC_FUNCTION and PUBLIC_PROCEDURE methods
-3. Input/output structures with DETAILED FIELD INFORMATION
-4. EXACT byte size calculation for each field
-5. Field ordering for correct serialization
-6. Total package size for each method
-7. Fee requirements and validations
-8. Registration indices (REGISTER_USER_FUNCTION/PROCEDURE)
-9. Asset and share management logic
-10. Order book operations (if applicable)
-
-CRITICAL FIELD ANALYSIS:
-For each struct field, you must provide:
-- Field name (exact as in C++)
-- Qubic type (uint64, id, sint64, etc.)
-- TypeScript type for frontend
-- Exact byte size
-- Order position (0-based index for serialization)
-- Whether it's an array and array size
-- Any validation requirements
-
-EXAMPLE INPUT STRUCT ANALYSIS:
-struct AddToAskOrder_input
-{{
-    id issuer;           // Field 0: 32 bytes
-    uint64 assetName;    // Field 1: 8 bytes  
-    sint64 price;        // Field 2: 8 bytes
-    sint64 numberOfShares; // Field 3: 8 bytes
-}}
-// Total package size: 32 + 8 + 8 + 8 = 56 bytes
-
-IMPORTANT FORMATTING RULES:
-- If a struct is empty (no fields), use empty arrays for inputFields/outputFields
-- Calculate exact packageSize by summing all input field byte sizes
-- Maintain field order exactly as defined in the struct
-- Include TypeScript types for frontend code generation
-
-Return JSON in this EXACT format:
-{{
-  ""contractName"": ""ContractName"",
-  ""namespace"": ""QPI"",
-  ""methods"": [
-    {{
-      ""name"": ""MethodName"",
-      ""type"": ""FUNCTION"" or ""PROCEDURE"",
-      ""procedureIndex"": null or number,
-      ""packageSize"": 56,
-      ""inputFields"": [
-        {{
-          ""name"": ""issuer"",
-          ""qubicType"": ""id"",
-          ""typeScriptType"": ""PublicKey"",
-          ""byteSize"": 32,
-          ""order"": 0,
-          ""isArray"": false,
-          ""arraySize"": null,
-          ""description"": ""Asset issuer public key"",
-          ""isRequired"": true,
-          ""defaultValue"": null,
-          ""validations"": [""Must be valid public key format""]
-        }},
-        {{
-          ""name"": ""assetName"",
-          ""qubicType"": ""uint64"",
-          ""typeScriptType"": ""Long"",
-          ""byteSize"": 8,
-          ""order"": 1,
-          ""isArray"": false,
-          ""arraySize"": null,
-          ""description"": ""Asset name as 64-bit integer"",
-          ""isRequired"": true,
-          ""defaultValue"": null,
-          ""validations"": [""Must be non-zero""]
-        }}
-      ],
-      ""outputFields"": [
-        {{
-          ""name"": ""addedNumberOfShares"",
-          ""qubicType"": ""sint64"",
-          ""typeScriptType"": ""Long"",
-          ""byteSize"": 8,
-          ""order"": 0,
-          ""isArray"": false,
-          ""arraySize"": null,
-          ""description"": ""Number of shares successfully added to order"",
-          ""isRequired"": true,
-          ""defaultValue"": null,
-          ""validations"": []
-        }}
-      ],
-      ""inputStruct"": {{""issuer"": ""id"", ""assetName"": ""uint64""}},
-      ""outputStruct"": {{""addedNumberOfShares"": ""sint64""}},
-      ""fees"": {{
-        ""requiresFee"": true,
-        ""feeType"": ""none"",
-        ""amount"": 0,
-        ""calculation"": ""No fee for ask orders""
-      }},
-      ""validations"": [
-        ""price must be greater than 0"",
-        ""numberOfShares must be greater than 0"",
-        ""Must own sufficient shares""
-      ],
-      ""description"": ""Adds shares to ask order book for selling"",
-      ""isAssetRelated"": true,
-      ""isOrderBookRelated"": true
-    }}
-  ]
-}}
-
-SPECIAL CONSIDERATIONS:
-- Arrays: Calculate total bytes as elementSize * arrayLength
-- Nested structs: Sum all internal field sizes
-- Collection types: NOT included in transaction payload (state only)
-- Empty structs: packageSize = 0, empty inputFields array
-- Order matters: Fields must be in exact C++ struct definition order
-- Validation rules: Extract from contract code logic (fee checks, bounds, etc.)
-
-PROCEDURE vs FUNCTION IDENTIFICATION:
-- FUNCTION: Read-only, returns data, no state changes, no fees usually
-- PROCEDURE: Modifies state, may require fees, can transfer assets
-
-FEE ANALYSIS:
-- Look for invocationReward() checks in the code
-- Identify fee amounts from contract constants
-- Note fee calculation formulas (percentage-based, fixed amounts)
-- Identify which methods require payment vs which refund excess
-
-Generate complete analysis for ALL public methods found in the contract.";
-        }
-
-        private string CreateCodeGenerationPrompt(ContractMethod method, string contractName, ProcessingOptions options)
-        {
-            var methodJson = JsonSerializer.Serialize(method, _jsonOptions);
-
-            return $@"Generate a complete TypeScript class for this Qubic contract method:
-
-QUBIC TRANSACTION CONTEXT:
-Qubic transactions are built using payload classes that implement IQubicBuildPackage. Each transaction:
-- Has a specific byte size calculated from input struct fields
-- Uses QubicPackageBuilder to serialize data in correct order
-- May require invocationReward (QUs) for execution
-- Can involve asset transfers, order book operations, or state changes
-
-METHOD:
-{methodJson}
-
-CONTRACT: {contractName}
-
-Generate code following exactly this pattern:
-
-import {{ IQubicBuildPackage }} from ""../IQubicBuildPackage"";
-import {{ PublicKey }} from ""../PublicKey"";
-import {{ Long }} from ""../Long"";
-import {{ QubicPackageBuilder }} from ""../../QubicPackageBuilder"";
-import {{ DynamicPayload }} from ""../DynamicPayload"";
-
-export class Qubic{method.Name}Payload implements IQubicBuildPackage {{
-    private _internalPackageSize = [CALCULATE_EXACT_SIZE]; // Comment with calculation
-    private {ToLowerCamelCase(method.Name)}Input: {method.Name}Input;
-
-    constructor(actionInput: {method.Name}Input) {{
-        this.{ToLowerCamelCase(method.Name)}Input = actionInput;
-    }}
-
-    getPackageSize(): number {{
-        return this._internalPackageSize;
-    }}
-
-    getPackageData(): Uint8Array {{
-        const builder = new QubicPackageBuilder(this.getPackageSize());
-        // Add fields in correct order according to inputStruct
-        return builder.getData();
-    }}
-
-    getTransactionPayload(): DynamicPayload {{
-        const payload = new DynamicPayload(this.getPackageSize());
-        payload.setPayload(this.getPackageData());
-        return payload;
-    }}
-
-    getTotalAmount(): bigint {{
-        // Calculate according to method logic
-        return BigInt(0);
-    }}
-
-    validateInput(): string[] {{
-        const errors: string[] = [];
-        // Method-specific validations
-        return errors;
-    }}
-}}
-
-export interface {method.Name}Input {{
-    // Fields from inputStruct
-}}
-
-TYPE MAPPING:
-- uint8/16/32/64, sint8/16/32/64 → Long
-- id → PublicKey  
-- bool → boolean
-- Array<T,N> → Array<T>
-
-BYTE SIZES:
-- uint8/sint8 = 1, uint16/sint16 = 2, uint32/sint32 = 4, uint64/sint64 = 8
-- id = 32, bool = 1
-
-QUBIC-SPECIFIC CONSIDERATIONS:
-- Asset-related methods may need issuer and assetName validation
-- Order book methods should validate price > 0 and numberOfShares > 0
-- Fee-requiring methods should calculate invocationReward in getTotalAmount()
-- Ensure proper field ordering for binary serialization
-
-Generate complete TypeScript code:";
-        }
-
-        private string CreateSecurityAuditPrompt(string contractCode, ContractAnalysis analysis)
-        {
-            var analysisJson = JsonSerializer.Serialize(analysis, _jsonOptions);
-
-            return $@"Perform a comprehensive security audit of this Qubic smart contract:
-
-QUBIC SECURITY CONTEXT:
-Qubic contracts have unique security considerations:
-- Asset ownership vs possession separation
-- Share manipulation through order book operations
-- invocationReward fee manipulation
-- Concurrent state access by multiple transactions
-- Cross-contract share transfers and management rights
-- Collection-based state storage vulnerabilities
-
-CONTRACT ANALYSIS:
-{analysisJson}
-
-COMPLETE CODE:
-{contractCode}
-
-VULNERABILITIES TO SEARCH FOR:
-
-1. QUBIC-SPECIFIC VULNERABILITIES:
-- Share Manipulation: Unauthorized ownership/possession transfers
-- Order Book Exploitation: Price/volume manipulation in ask/bid orders
-- Fee Bypass: Circumventing invocationReward requirements
-- Asset Issuance Abuse: Unauthorized asset creation or inflation
-- State Desynchronization: _assetOrders vs _entityOrders inconsistency
-- Management Rights Abuse: Unauthorized share management transfers
-
-2. STANDARD VULNERABILITIES:
-- Reentrancy: Recursive calls during state changes
-- Integer Overflow/Underflow: Arithmetic overflows in calculations
-- Access Control: Missing authorization checks
-- State Manipulation: Unauthorized state modifications
-- DoS Attacks: Gas limit exploitation or unexpected reverts
-- Front-running: Transaction ordering vulnerabilities
-- Business Logic Flaws: Logic errors in contract operations
-
-3. QUBIC-SPECIFIC ANALYSIS POINTS:
-- Share balance verification before transfers
-- invocationReward validation and refund logic
-- Order book state consistency maintenance
-- Asset metadata integrity
-- Concurrent transaction handling
-- Cross-method state dependencies
-
-4. COMMON QUBIC ATTACK VECTORS:
-- Draining assets through manipulated orders
-- Fee evasion through reward manipulation
-- Share dilution attacks
-- Order book front-running
-- State corruption through concurrent access
-
-Return JSON array with this structure:
-[
-  {{
-    ""name"": ""Vulnerability name"",
-    ""type"": ""VulnerabilityType"",
-    ""severity"": ""Critical"",
-    ""description"": ""Detailed description"",
-    ""location"": ""Code location"",
-    ""impact"": ""Potential impact"",
-    ""exploitScenarios"": [""scenario1"", ""scenario2""],
-    ""recommendations"": [""recommendation1"", ""recommendation2""],
-    ""isConfirmed"": true,
-    ""qubicSpecific"": true
-  }}
-]";
-        }
-
-        private string CreateSecurityTestPrompt(ContractMethod method, string contractCode)
-        {
-            var methodJson = JsonSerializer.Serialize(method, _jsonOptions);
-
-            return $@"Generate security test cases with ACTUAL MALICIOUS VALUES for this Qubic method:
-
-CRITICAL REQUIREMENT: You must provide SPECIFIC MALICIOUS VALUES for each test case, not empty objects.
-
-QUBIC TESTING CONTEXT:
-Each test must target ONE specific input variable with a malicious value while providing valid values for other variables.
-
-METHOD TO TEST:
-{methodJson}
-
-INPUT VARIABLES AVAILABLE:
-{string.Join(", ", method.InputStruct.Select(kv => $"{kv.Key} ({kv.Value})"))}
-
-QUBIC ATTACK VALUE MAPPINGS:
-
-1. INTEGER OVERFLOW ATTACKS:
-   - uint8: ""255"" (MAX_UINT8)
-   - uint16: ""65535"" (MAX_UINT16)  
-   - uint32: ""4294967295"" (MAX_UINT32)
-   - uint64: ""18446744073709551615"" (MAX_UINT64)
-   - sint64: ""9223372036854775807"" (MAX_INT64)
-
-2. INTEGER UNDERFLOW ATTACKS:
-   - Any signed type: ""-1"", ""-999999999""
-   - Any unsigned type: ""-1"" (should cause underflow)
-
-3. ZERO VALUE ATTACKS:
-   - All numeric types: ""0""
-
-4. PUBLIC KEY ATTACKS:
-   - Invalid format: ""INVALID_KEY_FORMAT_TOO_SHORT""
-   - Null bytes: ""AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""
-   - Wrong length: ""WRONG_LENGTH_KEY""
-   - All zeros: ""AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""
-   - Malicious pattern: ""EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE""
-
-5. ARRAY ATTACKS:
-   - Empty array: []
-   - Oversized array: [1,2,3,...,999] (if array has size limit)
-   - Null elements: [null, null, null]
-
-6. VALID DEFAULT VALUES (for non-target fields):
-   - uint64: ""1000""
-   - id (PublicKey): ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
-   - bool: true
-   - Arrays: appropriate default arrays
-
-ATTACK SCENARIOS BY VULNERABILITY TYPE:
-
-INTEGER OVERFLOW: Target numeric fields with MAX values
-INTEGER UNDERFLOW: Target signed fields with negative values  
-SHARE MANIPULATION: Target amount/share fields with 0, negative, or MAX values
-ACCESS CONTROL: Target id fields with invalid public keys
-INVALID INPUT: Target any field with malformed data
-REENTRANCY: Test with valid inputs but document the reentrancy concern
-DOS: Target with values that could cause excessive computation
-
-REQUIRED TEST CASE FORMAT:
-Generate 2-4 test cases for this method. Each test MUST include:
-
-1. targetInput with ACTUAL malicious value
-2. otherInputs with VALID default values for all other fields
-3. Clear explanation of the attack
-
-CONTRACT CONTEXT:
-{contractCode.Substring(0, Math.Min(1000, contractCode.Length))}...
-
-EXAMPLE OUTPUT FORMAT (follow this EXACTLY):
-[
-  {{
-    ""testName"": ""Integer Overflow Attack on Amount"",
-    ""methodName"": ""{method.Name}"",
-    ""targetVariable"": ""amount"",
-    ""description"": ""Tests integer overflow by providing maximum uint64 value"",
-    ""vulnerabilityType"": ""Integer Overflow"",
-    ""severity"": ""Critical"",
-    ""testInputs"": {{
-      ""targetInput"": {{
-        ""variableName"": ""amount"",
-        ""variableType"": ""uint64"",
-        ""maliciousValue"": ""18446744073709551615"",
-        ""attackReason"": ""Maximum uint64 value causes integer overflow in arithmetic operations""
-      }},
-      ""otherInputs"": {{
-        ""user"": ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
-      }}
-    }},
-    ""expectedBehavior"": ""Should reject transaction with overflow protection"",
-    ""actualRisk"": ""Could manipulate balances or drain contract funds"",
-    ""mitigationSteps"": [""Add SafeMath library"", ""Implement bounds checking"", ""Validate input ranges before operations""]
-  }},
-  {{
-    ""testName"": ""Zero Amount Attack"",
-    ""methodName"": ""{method.Name}"",
-    ""targetVariable"": ""amount"",
-    ""description"": ""Tests zero amount handling"",
-    ""vulnerabilityType"": ""Share Manipulation"",
-    ""severity"": ""Medium"",
-    ""testInputs"": {{
-      ""targetInput"": {{
-        ""variableName"": ""amount"",
-        ""variableType"": ""uint64"",
-        ""maliciousValue"": ""0"",
-        ""attackReason"": ""Zero amounts can bypass business logic or waste gas""
-      }},
-      ""otherInputs"": {{
-        ""user"": ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
-      }}
-    }},
-    ""expectedBehavior"": ""Should reject zero amount transactions"",
-    ""actualRisk"": ""Could waste contract resources or bypass validations"",
-    ""mitigationSteps"": [""Add minimum amount validation"", ""Implement zero-check guards""]
-  }}
-]
-
-CRITICAL INSTRUCTIONS:
-- testInputs MUST contain actual values, not empty objects
-- targetInput.maliciousValue MUST be a specific string value 
-- otherInputs MUST contain valid values for ALL other input fields
-- Generate tests that actually exploit the specific vulnerability type
-- Focus on values that would cause real security issues in Qubic
-
-INPUT FIELD ANALYSIS FOR {method.Name}:
-{string.Join("\n", method.InputStruct.Select(kv => $"- {kv.Key}: {kv.Value} (provide valid default if not target)"))}
-
-Generate test cases with REAL malicious values that can be used directly in transactions.";
-        }
-
-        private string CreateHelperGenerationPrompt(ContractMethod method, string contractName)
-        {
-            return $@"Generate helper functions in TypeScript for the {method.Name} method:
-
-QUBIC HELPERS CONTEXT:
-Qubic transactions often need:
-- Asset validation utilities
-- Fee calculation helpers
-- Order book state checkers
-- Share balance verifiers
-
-Include:
-1. Function to create payload easily
-2. Function to validate parameters specific to Qubic
-3. Function to calculate fees and invocationReward
-4. Function to execute transaction with proper error handling
-5. Asset/share validation utilities (if applicable)
-
-Generate TypeScript helper functions for {method.Name} method in contract {contractName}.";
-        }
-
-        private string CreateValidationGenerationPrompt(ContractMethod method)
-        {
-            return $@"Generate detailed validation rules for the {method.Name} method:
-
-QUBIC VALIDATION CONTEXT:
-Qubic contracts require validation for:
-- Asset existence and ownership
-- Share balance sufficiency  
-- Order book constraints
-- Fee amount correctness
-- Public key format validation
-
-Include validations for:
-1. Data types and ranges
-2. Qubic-specific constraints (asset IDs, share amounts)
-3. Business logic requirements
-4. Security constraints
-5. Order book rules (if applicable)
-
-Generate TypeScript validation functions for {method.Name} method.";
-        }
+//        private string CreateSecurityAuditPrompt(string contractCode, ContractAnalysis analysis)
+//        {
+//            var analysisJson = JsonSerializer.Serialize(analysis, _jsonOptions);
+
+//            return $@"Perform a comprehensive security audit of this Qubic smart contract:
+
+//QUBIC SECURITY CONTEXT:
+//Qubic contracts have unique security considerations:
+//- Asset ownership vs possession separation
+//- Share manipulation through order book operations
+//- invocationReward fee manipulation
+//- Concurrent state access by multiple transactions
+//- Cross-contract share transfers and management rights
+//- Collection-based state storage vulnerabilities
+
+//CONTRACT ANALYSIS:
+//{analysisJson}
+
+//COMPLETE CODE:
+//{contractCode}
+
+//VULNERABILITIES TO SEARCH FOR:
+
+//1. QUBIC-SPECIFIC VULNERABILITIES:
+//- Share Manipulation: Unauthorized ownership/possession transfers
+//- Order Book Exploitation: Price/volume manipulation in ask/bid orders
+//- Fee Bypass: Circumventing invocationReward requirements
+//- Asset Issuance Abuse: Unauthorized asset creation or inflation
+//- State Desynchronization: _assetOrders vs _entityOrders inconsistency
+//- Management Rights Abuse: Unauthorized share management transfers
+
+//2. STANDARD VULNERABILITIES:
+//- Reentrancy: Recursive calls during state changes
+//- Integer Overflow/Underflow: Arithmetic overflows in calculations
+//- Access Control: Missing authorization checks
+//- State Manipulation: Unauthorized state modifications
+//- DoS Attacks: Gas limit exploitation or unexpected reverts
+//- Front-running: Transaction ordering vulnerabilities
+//- Business Logic Flaws: Logic errors in contract operations
+
+//3. QUBIC-SPECIFIC ANALYSIS POINTS:
+//- Share balance verification before transfers
+//- invocationReward validation and refund logic
+//- Order book state consistency maintenance
+//- Asset metadata integrity
+//- Concurrent transaction handling
+//- Cross-method state dependencies
+
+//4. COMMON QUBIC ATTACK VECTORS:
+//- Draining assets through manipulated orders
+//- Fee evasion through reward manipulation
+//- Share dilution attacks
+//- Order book front-running
+//- State corruption through concurrent access
+
+//Return JSON array with this structure:
+//[
+//  {{
+//    ""name"": ""Vulnerability name"",
+//    ""type"": ""VulnerabilityType"",
+//    ""severity"": ""Critical"",
+//    ""description"": ""Detailed description"",
+//    ""location"": ""Code location"",
+//    ""impact"": ""Potential impact"",
+//    ""exploitScenarios"": [""scenario1"", ""scenario2""],
+//    ""recommendations"": [""recommendation1"", ""recommendation2""],
+//    ""isConfirmed"": true,
+//    ""qubicSpecific"": true
+//  }}
+//]";
+//        }
+
+//        private string CreateSecurityTestPrompt(ContractMethod method, string contractCode)
+//        {
+//            var methodJson = JsonSerializer.Serialize(method, _jsonOptions);
+
+//            return $@"Generate security test cases with ACTUAL MALICIOUS VALUES for this Qubic method:
+
+//CRITICAL REQUIREMENT: You must provide SPECIFIC MALICIOUS VALUES for each test case, not empty objects.
+
+//QUBIC TESTING CONTEXT:
+//Each test must target ONE specific input variable with a malicious value while providing valid values for other variables.
+
+//METHOD TO TEST:
+//{methodJson}
+
+//INPUT VARIABLES AVAILABLE:
+//{string.Join(", ", method.InputStruct.Select(kv => $"{kv.Key} ({kv.Value})"))}
+
+//QUBIC ATTACK VALUE MAPPINGS:
+
+//1. INTEGER OVERFLOW ATTACKS:
+//   - uint8: ""255"" (MAX_UINT8)
+//   - uint16: ""65535"" (MAX_UINT16)  
+//   - uint32: ""4294967295"" (MAX_UINT32)
+//   - uint64: ""18446744073709551615"" (MAX_UINT64)
+//   - sint64: ""9223372036854775807"" (MAX_INT64)
+
+//2. INTEGER UNDERFLOW ATTACKS:
+//   - Any signed type: ""-1"", ""-999999999""
+//   - Any unsigned type: ""-1"" (should cause underflow)
+
+//3. ZERO VALUE ATTACKS:
+//   - All numeric types: ""0""
+
+//4. PUBLIC KEY ATTACKS:
+//   - Invalid format: ""INVALID_KEY_FORMAT_TOO_SHORT""
+//   - Null bytes: ""AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""
+//   - Wrong length: ""WRONG_LENGTH_KEY""
+//   - All zeros: ""AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA""
+//   - Malicious pattern: ""EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE""
+
+//5. ARRAY ATTACKS:
+//   - Empty array: []
+//   - Oversized array: [1,2,3,...,999] (if array has size limit)
+//   - Null elements: [null, null, null]
+
+//6. VALID DEFAULT VALUES (for non-target fields):
+//   - uint64: ""1000""
+//   - id (PublicKey): ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
+//   - bool: true
+//   - Arrays: appropriate default arrays
+
+//ATTACK SCENARIOS BY VULNERABILITY TYPE:
+
+//INTEGER OVERFLOW: Target numeric fields with MAX values
+//INTEGER UNDERFLOW: Target signed fields with negative values  
+//SHARE MANIPULATION: Target amount/share fields with 0, negative, or MAX values
+//ACCESS CONTROL: Target id fields with invalid public keys
+//INVALID INPUT: Target any field with malformed data
+//REENTRANCY: Test with valid inputs but document the reentrancy concern
+//DOS: Target with values that could cause excessive computation
+
+//REQUIRED TEST CASE FORMAT:
+//Generate 2-4 test cases for this method. Each test MUST include:
+
+//1. targetInput with ACTUAL malicious value
+//2. otherInputs with VALID default values for all other fields
+//3. Clear explanation of the attack
+
+//CONTRACT CONTEXT:
+//{contractCode.Substring(0, Math.Min(1000, contractCode.Length))}...
+
+//EXAMPLE OUTPUT FORMAT (follow this EXACTLY):
+//[
+//  {{
+//    ""testName"": ""Integer Overflow Attack on Amount"",
+//    ""methodName"": ""{method.Name}"",
+//    ""targetVariable"": ""amount"",
+//    ""description"": ""Tests integer overflow by providing maximum uint64 value"",
+//    ""vulnerabilityType"": ""Integer Overflow"",
+//    ""severity"": ""Critical"",
+//    ""testInputs"": {{
+//      ""targetInput"": {{
+//        ""variableName"": ""amount"",
+//        ""variableType"": ""uint64"",
+//        ""maliciousValue"": ""18446744073709551615"",
+//        ""attackReason"": ""Maximum uint64 value causes integer overflow in arithmetic operations""
+//      }},
+//      ""otherInputs"": {{
+//        ""user"": ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
+//      }}
+//    }},
+//    ""expectedBehavior"": ""Should reject transaction with overflow protection"",
+//    ""actualRisk"": ""Could manipulate balances or drain contract funds"",
+//    ""mitigationSteps"": [""Add SafeMath library"", ""Implement bounds checking"", ""Validate input ranges before operations""]
+//  }},
+//  {{
+//    ""testName"": ""Zero Amount Attack"",
+//    ""methodName"": ""{method.Name}"",
+//    ""targetVariable"": ""amount"",
+//    ""description"": ""Tests zero amount handling"",
+//    ""vulnerabilityType"": ""Share Manipulation"",
+//    ""severity"": ""Medium"",
+//    ""testInputs"": {{
+//      ""targetInput"": {{
+//        ""variableName"": ""amount"",
+//        ""variableType"": ""uint64"",
+//        ""maliciousValue"": ""0"",
+//        ""attackReason"": ""Zero amounts can bypass business logic or waste gas""
+//      }},
+//      ""otherInputs"": {{
+//        ""user"": ""CFBMEMZOIDEXQAUXYYSZIURADQLAPWPMNJXQSNVQZAHYVOPYUKKJBJUCTVJL""
+//      }}
+//    }},
+//    ""expectedBehavior"": ""Should reject zero amount transactions"",
+//    ""actualRisk"": ""Could waste contract resources or bypass validations"",
+//    ""mitigationSteps"": [""Add minimum amount validation"", ""Implement zero-check guards""]
+//  }}
+//]
+
+//CRITICAL INSTRUCTIONS:
+//- testInputs MUST contain actual values, not empty objects
+//- targetInput.maliciousValue MUST be a specific string value 
+//- otherInputs MUST contain valid values for ALL other input fields
+//- Generate tests that actually exploit the specific vulnerability type
+//- Focus on values that would cause real security issues in Qubic
+
+//INPUT FIELD ANALYSIS FOR {method.Name}:
+//{string.Join("\n", method.InputStruct.Select(kv => $"- {kv.Key}: {kv.Value} (provide valid default if not target)"))}
+
+//Generate test cases with REAL malicious values that can be used directly in transactions.";
+//        }
+
+//        private string CreateHelperGenerationPrompt(ContractMethod method, string contractName)
+//        {
+//            return $@"Generate helper functions in TypeScript for the {method.Name} method:
+
+//QUBIC HELPERS CONTEXT:
+//Qubic transactions often need:
+//- Asset validation utilities
+//- Fee calculation helpers
+//- Order book state checkers
+//- Share balance verifiers
+
+//Include:
+//1. Function to create payload easily
+//2. Function to validate parameters specific to Qubic
+//3. Function to calculate fees and invocationReward
+//4. Function to execute transaction with proper error handling
+//5. Asset/share validation utilities (if applicable)
+
+//Generate TypeScript helper functions for {method.Name} method in contract {contractName}.";
+//        }
+
+//        private string CreateValidationGenerationPrompt(ContractMethod method)
+//        {
+//            return $@"Generate detailed validation rules for the {method.Name} method:
+
+//QUBIC VALIDATION CONTEXT:
+//Qubic contracts require validation for:
+//- Asset existence and ownership
+//- Share balance sufficiency  
+//- Order book constraints
+//- Fee amount correctness
+//- Public key format validation
+
+//Include validations for:
+//1. Data types and ranges
+//2. Qubic-specific constraints (asset IDs, share amounts)
+//3. Business logic requirements
+//4. Security constraints
+//5. Order book rules (if applicable)
+
+//Generate TypeScript validation functions for {method.Name} method.";
+//        }
 
         // ===== HELPER METHODS =====
 

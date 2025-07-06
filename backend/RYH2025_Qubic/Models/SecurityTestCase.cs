@@ -24,7 +24,6 @@ namespace RYH2025_Qubic.Models
         public string ExpectedBehavior { get; set; } = string.Empty;
         public string ActualRisk { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
         // Stored as JSON
         [Column(TypeName = "jsonb")]
         public string TestInputsJson { get; set; } = "{}";

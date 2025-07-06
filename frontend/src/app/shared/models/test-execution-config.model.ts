@@ -1,5 +1,5 @@
 export interface TestExecutionConfig {
-    qubicApiUrl: string;
+    qubicRpcUrl: string;
     contractAddress: string;
     testIdentity: string;
     testSeed: string;

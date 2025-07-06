@@ -24,6 +24,7 @@ import { TestInputs } from '../shared/models/test-inputs.model';
 import { TargetInput } from '../shared/models/target-input';
 import { IQubicBuildPackage } from '@qubic-lib/qubic-ts-library/dist/qubic-types/IQubicBuildPackage';
 import { TickInfoResponse } from '../shared/models/tick-info.response.model';
+import { environment } from 'src/environments/environment';
 
 type ExecutionStatus = 'success' | 'failed' | 'rejected' | 'error';
 
@@ -31,12 +32,20 @@ type ExecutionStatus = 'success' | 'failed' | 'rejected' | 'error';
     providedIn: 'root',
 })
 export class SecurityTestExecutorService {
+    executionconfig: TestExecutionConfig = <TestExecutionConfig>{
+        qubicRpcUrl: environment.qubicRpcUrl,
+        contractAddress: environment.contractAddress,
+        testIdentity: environment.testIdentity,
+        testSeed: environment.testSeed,
+        tickOffset: environment.tickOffset,
+        delayBetweenTests: environment.delayBetweenTests,
+    };
     constructor(private http: HttpClient) {}
 
     /**
      * Ejecuta todos los casos de prueba usando los valores reales de Groq
      */
-    executeAllSecurityTests(contractAnalysis: ContractAnalysis, config: TestExecutionConfig): Observable<TestExecutionResult[]> {
+    executeAllSecurityTests(contractAnalysis: ContractAnalysis): Observable<TestExecutionResult[]> {
         console.log(`🧪 Starting security test execution for ${contractAnalysis.contractName}`);
 
         // Extraer todos los test cases con sus métodos
@@ -54,8 +63,8 @@ export class SecurityTestExecutorService {
 
         // Ejecutar tests con delay entre cada uno
         const testObservables = allTests.map((testData, index) =>
-            this.executeSecurityTest(testData.testCase, testData.method, config).pipe(
-                delay(index * config.delayBetweenTests),
+            this.executeSecurityTest(testData.testCase, testData.method).pipe(
+                delay(index * this.executionconfig.delayBetweenTests),
                 catchError((error: Error) => {
                     console.error(`Error in test ${testData.testCase.testName}:`, error);
                     return from([this.createErrorResult(testData.testCase, testData.method, error.message)]);
@@ -69,13 +78,13 @@ export class SecurityTestExecutorService {
     /**
      * Ejecuta un caso de prueba específico
      */
-    public executeSecurityTest(testCase: SecurityTestCase, method: ContractMethod, config: TestExecutionConfig): Observable<TestExecutionResult> {
+    public executeSecurityTest(testCase: SecurityTestCase, method: ContractMethod): Observable<TestExecutionResult> {
         console.log(`🔬 Executing: ${testCase.testName}`);
 
         const testInputs = this.parseTestInputs(testCase.testInputs);
         console.log(`🎯 Target: ${testCase.targetVariable} with value: ${testInputs?.targetInput?.maliciousValue}`);
 
-        return this.getCurrentTick(config.qubicApiUrl).pipe(
+        return this.getCurrentTick(this.executionconfig.qubicRpcUrl).pipe(
             switchMap((currentTick: number) => {
                 try {
                     // 1. Preparar inputs con valores específicos de Groq
@@ -85,11 +94,18 @@ export class SecurityTestExecutorService {
                     const payload = this.createDynamicPayload(method, transactionInputs);
 
                     // 3. Crear transacción
-                    const targetTick = currentTick + config.tickOffset;
+                    const targetTick = currentTick + this.executionconfig.tickOffset;
 
-                    return this.createQubicTransaction(config.testIdentity, config.testSeed, config.contractAddress, method, payload, targetTick).pipe(
+                    return this.createQubicTransaction(
+                        this.executionconfig.testIdentity,
+                        this.executionconfig.testSeed,
+                        this.executionconfig.contractAddress,
+                        method,
+                        payload,
+                        targetTick,
+                    ).pipe(
                         switchMap((transaction: QubicTransaction) => {
-                            return this.broadcastTransaction(transaction, config.qubicApiUrl).pipe(
+                            return this.broadcastTransaction(transaction, this.executionconfig.qubicRpcUrl).pipe(
                                 map((result: BroadcastResponse) => this.createSuccessResult(testCase, method, transaction, payload, result)),
                                 catchError((error: Error) => {
                                     console.error(`Broadcast failed for ${testCase.testName}:`, error);
@@ -132,16 +148,21 @@ export class SecurityTestExecutorService {
         };
     }
 
-    /**
-     * Prepara inputs usando los valores específicos del test case de Groq
-     */
     private prepareInputsFromTestCase(
         testCase: SecurityTestCase,
         method: ContractMethod,
         testInputs: TestInputs | null,
     ): Record<string, PublicKey | Long | boolean | string | any[]> {
-        if (!testInputs || !testInputs.targetInput) {
-            throw new Error(`Test case ${testCase.testName} missing testInputs with targetInput`);
+        // Si no hay testInputs o no hay inputFields, retornar objeto vacío
+        if (!testInputs || !method.inputFields || method.inputFields.length === 0) {
+            console.log(`📭 Method ${method.name} has no input parameters - using empty inputs`);
+            return {};
+        }
+
+        // Si testInputs existe pero no tiene targetInput, también retornar vacío
+        if (!testInputs.targetInput) {
+            console.log(`📭 Test case ${testCase.testName} has no targetInput - using empty inputs`);
+            return {};
         }
 
         const inputs: Record<string, PublicKey | Long | boolean | string | any[]> = {};
@@ -314,11 +335,24 @@ export class SecurityTestExecutorService {
         }
     }
 
-    /**
-     * Crea payload dinámico
-     */
     private createDynamicPayload(method: ContractMethod, inputs: Record<string, PublicKey | Long | boolean | string | any[]>): DynamicPayload {
         console.log(`📦 Creating payload for ${method.name} (${method.packageSize} bytes)`);
+
+        // Si packageSize es 0 o no hay inputFields, crear payload vacío
+        if (method.packageSize === 0 || !method.inputFields || method.inputFields.length === 0) {
+            console.log(`📭 Empty payload for method ${method.name} (no input parameters)`);
+            const payload = new DynamicPayload(0);
+            payload.setPayload(new Uint8Array(0));
+            return payload;
+        }
+
+        // Si inputs está vacío pero se esperan fields, también crear payload vacío
+        if (Object.keys(inputs).length === 0) {
+            console.log(`📭 No inputs provided, creating empty payload`);
+            const payload = new DynamicPayload(0);
+            payload.setPayload(new Uint8Array(0));
+            return payload;
+        }
 
         const builder = new QubicPackageBuilder(method.packageSize);
 
@@ -380,9 +414,6 @@ export class SecurityTestExecutorService {
         return payload;
     }
 
-    /**
-     * Crea transacción Qubic
-     */
     private createQubicTransaction(
         senderId: string,
         senderSeed: string,
@@ -398,7 +429,7 @@ export class SecurityTestExecutorService {
                         .setSourcePublicKey(new PublicKey(senderId))
                         .setDestinationPublicKey(new PublicKey(contractAddress))
                         .setTick(targetTick)
-                        .setInputSize(payload.getPackageSize())
+                        .setInputSize(payload.getPackageSize()) // Esto será 0 para métodos sin parámetros
                         .setPayload(payload);
 
                     if (method.type === 'FUNCTION') {
@@ -407,12 +438,11 @@ export class SecurityTestExecutorService {
                         }
                         transaction.setInputType(method.procedureIndex);
                         transaction.setAmount(new Long(BigInt(0)));
-                        console.log(`📞 Function call - InputType: ${method.procedureIndex}`);
+                        console.log(`📞 Function call - InputType: ${method.procedureIndex}, InputSize: ${payload.getPackageSize()}`);
                     } else {
-                        // PROCEDURE
                         const inputType = method.procedureIndex || 1;
                         transaction.setInputType(inputType);
-                        console.log(`🔧 Procedure call - InputType: ${inputType}`);
+                        console.log(`🔧 Procedure call - InputType: ${inputType}, InputSize: ${payload.getPackageSize()}`);
 
                         const feeAmount = this.extractFeeAmount(method.fees);
                         transaction.setAmount(new Long(BigInt(feeAmount)));
@@ -420,7 +450,7 @@ export class SecurityTestExecutorService {
                     }
 
                     await transaction.build(senderSeed);
-                    console.log(`✅ Transaction created successfully for ${method.name}`);
+                    console.log(`✅ Transaction created successfully for ${method.name} (payload size: ${payload.getPackageSize()})`);
 
                     return transaction;
                 } catch (error) {
@@ -431,9 +461,6 @@ export class SecurityTestExecutorService {
         );
     }
 
-    /**
-     * Extrae el amount de las fees de manera segura
-     */
     private extractFeeAmount(fees: Record<string, any>): number {
         if (!fees || typeof fees !== 'object') {
             return 0;
@@ -457,9 +484,6 @@ export class SecurityTestExecutorService {
         return 0;
     }
 
-    /**
-     * Obtiene tick actual
-     */
     private getCurrentTick(apiUrl: string): Observable<number> {
         return this.http.get<TickInfoResponse>(`${apiUrl}/v1/tick-info`).pipe(
             map((response: TickInfoResponse) => {
@@ -475,9 +499,6 @@ export class SecurityTestExecutorService {
         );
     }
 
-    /**
-     * Envía transacción
-     */
     private broadcastTransaction(transaction: QubicTransaction, apiUrl: string): Observable<BroadcastResponse> {
         try {
             const encodedTransaction = transaction.encodeTransactionToBase64(transaction.getPackageData());
@@ -559,16 +580,19 @@ export class SecurityTestExecutorService {
         return false;
     }
 
-    /**
-     * Genera notas de evaluación
-     */
     private generateAssessmentNotes(testCase: SecurityTestCase, vulnerabilityConfirmed: boolean, error?: string): string {
         const testInputs = this.parseTestInputs(testCase.testInputs);
 
         let notes = `🧪 Test: ${testCase.testName}\n`;
         notes += `🎯 Target Variable: ${testCase.targetVariable}\n`;
-        notes += `💀 Malicious Value: ${testInputs?.targetInput?.maliciousValue || 'unknown'}\n`;
-        notes += `📝 Attack Reason: ${testInputs?.targetInput?.attackReason || 'unknown'}\n\n`;
+
+        if (testInputs?.targetInput) {
+            notes += `💀 Malicious Value: ${testInputs.targetInput.maliciousValue}\n`;
+            notes += `📝 Attack Reason: ${testInputs.targetInput.attackReason}\n\n`;
+        } else {
+            notes += `📭 Internal Logic Test (no external inputs)\n`;
+            notes += `🔍 Testing: ${testCase.description}\n\n`;
+        }
 
         if (error) {
             notes += `❌ Error: ${error}\n\n`;
@@ -593,9 +617,6 @@ export class SecurityTestExecutorService {
         return notes;
     }
 
-    /**
-     * Genera reporte final de resultados
-     */
     generateSecurityReport(results: TestExecutionResult[]): {
         executionDate: string;
         summary: {
@@ -641,7 +662,7 @@ export class SecurityTestExecutorService {
                     testName: r.testCase.testName,
                     method: r.method.name,
                     targetVariable: r.testCase.targetVariable,
-                    maliciousValue: testInputs?.targetInput?.maliciousValue || 'unknown',
+                    maliciousValue: testInputs?.targetInput?.maliciousValue || 'N/A (Internal Logic Test)',
                     vulnerabilityType: r.testCase.vulnerabilityType,
                     severity: r.testCase.severity,
                     status: r.executionStatus,

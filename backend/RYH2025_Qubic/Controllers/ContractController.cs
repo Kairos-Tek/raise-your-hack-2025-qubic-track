@@ -49,7 +49,7 @@ namespace RYH2025_Qubic.Controllers
                     });
 
                 _dbContext.ContractAnalyses.Add(result);
-                await _dbContext.SaveChangesAsync(); ;
+                await _dbContext.SaveChangesAsync(); 
 
                 return Ok(result);
             }

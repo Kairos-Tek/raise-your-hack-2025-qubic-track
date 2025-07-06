@@ -39,20 +39,8 @@ export class TestManagementComponent {
     }
 
     executeTestCase(testCase: SecurityTestCase, method: ContractMethod) {
-        debugger;
-        var config = <TestExecutionConfig>{
-            qubicApiUrl: 'http://67.222.157.62:8000',
-            contractAddress: 'MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWLWD',
-            testIdentity: 'HYJXEZSECWSKODJALRCKSLKVYUEBMAHDODYZUJIIYDPAGFKLMOTHTJXEBEWM',
-            testSeed: 'ukzbkszgzpipmxrrqcxcppumxoxzerrvbjgthinzodrlyblkedutmsy',
-            tickOffset: 20,
-            delayBetweenTests: 200,
-        };
-
-        this.securityTestExecutorService.executeSecurityTest(testCase, method, config).subscribe({
+        this.securityTestExecutorService.executeSecurityTest(testCase, method).subscribe({
             next: (result) => {
-                debugger;
-
                 console.log('Test executed successfully:', result);
             },
             error: (error) => {
