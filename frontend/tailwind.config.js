@@ -22,9 +22,11 @@ module.exports = {
                 qdarkblue: {
                     DEFAULT: '#0E1726',
                     light: '#1B2E4B',
+                    dark: '#060818'
                 },
                 qdark: {
-                    DEFAULT: '#161921'
+                    DEFAULT: '#161921',
+                    light: '#34374F'
                 },
                 accent: {
                     DEFAULT: '#F6DDA3'

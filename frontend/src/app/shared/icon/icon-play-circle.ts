@@ -1,10 +1,9 @@
-import { Component, Input, ViewChild, ViewContainerRef } from '@angular/core';
+import { Component, Input } from '@angular/core';
 @Component({
-    moduleId: module.id,
+  
     selector: 'icon-play-circle',
     template: `
-        <ng-template #template>
-            <svg *ngIf="fill" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" [ngClass]="class">
+        <svg *ngIf="fill" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" [ngClass]="class">
                 <path
                     fill-rule="evenodd"
                     clip-rule="evenodd"
@@ -21,16 +20,9 @@ import { Component, Input, ViewChild, ViewContainerRef } from '@angular/core';
                     stroke-width="1.5"
                 />
             </svg>
-        </ng-template>
     `,
 })
 export class IconPlayCircleComponent {
     @Input() fill: boolean = false;
     @Input() class: any = '';
-    @ViewChild('template', { static: true }) template: any;
-    constructor(private viewContainerRef: ViewContainerRef) {}
-    ngOnInit() {
-        this.viewContainerRef.createEmbeddedView(this.template);
-        this.viewContainerRef.element.nativeElement.remove();
-    }
 }

@@ -1,5 +1,6 @@
 /* animation */
 @import 'animate.css';
+@import 'datatable.css';
 
 @tailwind base;
 @tailwind components;

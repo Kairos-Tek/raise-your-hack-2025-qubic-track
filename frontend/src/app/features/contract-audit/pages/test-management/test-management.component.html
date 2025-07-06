@@ -1,27 +1,46 @@
 <div class="panel">
-    <h2 class="font-semibold text-lg text-white">Test Cases Management</h2>
+    <div class="flex items-center justify-between">
+        <h2 class="font-semibold text-lg text-white">Smart Contract: {{ contractAnalysis?.contractName }}</h2>
 
-    <p>Managing test cases for contract ID: {{ contractId }}</p>
+        <div class="flex items-center gap-6">
 
+            <div class="flex items-center border border-aqua bg-qdarkblue-light rounded-md overflow-hidden">
+                <span class="flex items-center justify-center bg-aqua py-2 px-4">
+                    <icon-desktop class="w-5 h-5 text-qdarkblue" />
+                </span>
+
+                <p class="font-semibold text-sm text-aqua px-4 py-2">{{ this.contractAnalysis?.securityAudit?.securityTests?.length }} generated cases will be executed</p>
+            </div>
+            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Execute">
+                <icon-play-circle class="w-5 h-5" />
+            </app-primary-button>
+        </div>
+    </div>
 
     <ng-container *ngIf="contractAnalysis">
-        <p class="text-gray-400">No contract analysis available.</p>
-        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ul class="flex flex-col gap-4 mt-8">
             <li *ngFor="let method of contractAnalysis.methods">
-                <app-card [title]="method.type" [subtitle]="getCardSubtitle(method)"
-                    [description]="method.description" />
-                <ul>
-                    <li *ngFor="let testCase of getSecurityTestCases(method)">
-                        <h4>{{testCase.testName}}</h4>
-                        <app-primary-button type="button" [disabled]="false" [loading]="false"
-                            (click)="executeTestCase(testCase, method)" text="Execute">
-                            <icon-test class="w-6 h-6" />
-                        </app-primary-button>
-                        <pre></pre>
-                    </li>
-                </ul>
+                <app-accordion [title]="getCardSubtitle(method)" [totalTests]="getSecurityTestCases(method).length">
+                    <icon-cube *ngIf="method.type != 'FUNCTION'" accordion-icon class="size-5 text-accent"></icon-cube>
+                    <icon-monitor *ngIf="method.type == 'FUNCTION'" accordion-icon class="size-5 text-accent"></icon-monitor>
+                    <div accordion-body>
+                        <ng-datatable [rows]="getSecurityTestCases(method)" [columns]="cols" [showPageSize]="false" [pagination]="false" skin="whitespace-nowrap bh-table-hover">
+                            <ng-template slot="action" let-value="data">
+                                <div class="text-center">
+                                    <button type="button" class="text-accent flex items-center gap-2 border" (click)="showDetails(value)">
+                                        <icon-eye class="size-5" />
+                                        <span class="text-xs">View Details</span>
+                                    </button>
+                                </div>
+                            </ng-template>
+                        </ng-datatable>
+                    </div>
+                </app-accordion>
             </li>
         </ul>
     </ng-container>
-
 </div>
+
+<app-custom-modal [open]="showModal" [title]="selectedSecurityTestCase?.methodName!" (closeModal)="showModal = false">
+    {{ selectedSecurityTestCase | json }}
+</app-custom-modal>
