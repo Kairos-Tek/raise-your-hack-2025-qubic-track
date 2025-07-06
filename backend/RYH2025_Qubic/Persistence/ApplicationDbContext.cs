@@ -36,20 +36,56 @@ namespace RYH2025_Qubic.Persistence
             // ContractMethod
             modelBuilder.Entity<ContractMethod>(entity =>
             {
+                // Existing configuration
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 entity.Property(e => e.Type).HasMaxLength(50).IsRequired();
                 entity.Property(e => e.Description).HasMaxLength(1000);
+                
+                entity.Property(e => e.ProcedureIndex).IsRequired(false);
+                entity.Property(e => e.PackageSize).IsRequired().HasDefaultValue(0);
+                entity.Property(e => e.IsAssetRelated).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.IsOrderBookRelated).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                // JSON fields
+                entity.Property(e => e.InputStructJson).HasColumnType("jsonb").IsRequired().HasDefaultValue("{}");
+                entity.Property(e => e.OutputStructJson).HasColumnType("jsonb").IsRequired().HasDefaultValue("{}");
+                entity.Property(e => e.InputFieldsJson).HasColumnType("jsonb").IsRequired().HasDefaultValue("[]");
+                entity.Property(e => e.OutputFieldsJson).HasColumnType("jsonb").IsRequired().HasDefaultValue("[]");
+                entity.Property(e => e.FeesJson).HasColumnType("jsonb").IsRequired().HasDefaultValue("{}");
+                entity.Property(e => e.ValidationsJson).HasColumnType("jsonb").IsRequired().HasDefaultValue("[]");
+
+                // Relationships
                 entity.HasOne(e => e.ContractAnalysis)
                       .WithMany(e => e.Methods)
                       .HasForeignKey(e => e.ContractAnalysisId)
                       .OnDelete(DeleteBehavior.Cascade);
 
+                entity.HasMany(e => e.SecurityTestCases)
+                      .WithOne(e => e.ContractMethod)
+                      .HasForeignKey(e => e.ContractMethodId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
                 entity.HasIndex(e => e.ContractAnalysisId);
                 entity.HasIndex(e => e.Name);
-            });
 
+                // NEW: Additional indexes for better performance
+                entity.HasIndex(e => e.Type);
+                entity.HasIndex(e => e.PackageSize);
+                entity.HasIndex(e => e.ProcedureIndex).HasFilter("\"ProcedureIndex\" IS NOT NULL");
+                entity.HasIndex(e => e.IsAssetRelated).HasFilter("\"IsAssetRelated\" = true");
+                entity.HasIndex(e => e.IsOrderBookRelated).HasFilter("\"IsOrderBookRelated\" = true");
+                entity.HasIndex(e => new { e.ContractAnalysisId, e.Name }).IsUnique();
+                entity.HasIndex(e => new { e.Type, e.Name });
+
+                // JSON indexes 
+                entity.HasIndex(e => e.InputFieldsJson).HasMethod("gin");
+                entity.HasIndex(e => e.OutputFieldsJson).HasMethod("gin");
+                entity.HasIndex(e => e.FeesJson).HasMethod("gin");
+                entity.HasIndex(e => e.ValidationsJson).HasMethod("gin");
+
+            });
 
             // SecurityAuditResult
             modelBuilder.Entity<SecurityAuditResult>(entity =>

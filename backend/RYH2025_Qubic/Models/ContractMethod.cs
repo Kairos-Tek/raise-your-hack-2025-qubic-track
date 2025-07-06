@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using RYH2025_Qubic.Models.Fields;
 
 namespace RYH2025_Qubic.Models
 {
@@ -26,6 +27,13 @@ namespace RYH2025_Qubic.Models
         [Column(TypeName = "jsonb")]
         public string OutputStructJson { get; set; } = "{}";
 
+        // NEW: Store detailed field information with bytes
+        [Column(TypeName = "jsonb")]
+        public string InputFieldsJson { get; set; } = "[]";
+
+        [Column(TypeName = "jsonb")]
+        public string OutputFieldsJson { get; set; } = "[]";
+
         [Column(TypeName = "jsonb")]
         public string FeesJson { get; set; } = "{}";
 
@@ -36,6 +44,9 @@ namespace RYH2025_Qubic.Models
         public bool IsAssetRelated { get; set; }
         public bool IsOrderBookRelated { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // NEW: Total package size for this method
+        public int PackageSize { get; set; }
 
         // Navigation properties
         [ForeignKey("ContractAnalysisId")]
@@ -60,6 +71,21 @@ namespace RYH2025_Qubic.Models
             set => OutputStructJson = value.GetRawText();
         }
 
+        // NEW: Enhanced field information with bytes
+        [NotMapped]
+        public List<ContractField> InputFields
+        {
+            get => JsonSerializer.Deserialize<List<ContractField>>(InputFieldsJson) ?? new();
+            set => InputFieldsJson = JsonSerializer.Serialize(value);
+        }
+
+        [NotMapped]
+        public List<ContractField> OutputFields
+        {
+            get => JsonSerializer.Deserialize<List<ContractField>>(OutputFieldsJson) ?? new();
+            set => OutputFieldsJson = JsonSerializer.Serialize(value);
+        }
+
         [NotMapped]
         public Dictionary<string, object> Fees
         {
@@ -74,6 +100,7 @@ namespace RYH2025_Qubic.Models
             set => ValidationsJson = JsonSerializer.Serialize(value);
         }
 
+        // Legacy properties for backward compatibility
         [NotMapped]
         [JsonIgnore]
         public Dictionary<string, string> InputStruct

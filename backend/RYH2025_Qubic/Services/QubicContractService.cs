@@ -238,9 +238,11 @@ CRITICAL INSTRUCTIONS:
 
         // ===== PROMPT GENERATION =====
 
+        // Enhanced CreateContractAnalysisPrompt method in QubicContractService.cs
+
         private string CreateContractAnalysisPrompt(string contractCode)
         {
-            return $@"Analyze this Qubic smart contract and extract its structure:
+            return $@"Analyze this Qubic smart contract and extract its structure INCLUDING EXACT BYTE SIZES for dynamic transaction generation:
 
 QUBIC BLOCKCHAIN CONTEXT:
 Qubic is a feeless blockchain that uses smart contracts written in C++ that inherit from ContractBase. Key concepts:
@@ -254,62 +256,159 @@ Qubic is a feeless blockchain that uses smart contracts written in C++ that inhe
 CONTRACT CODE:
 {contractCode}
 
+QUBIC DATA TYPES AND THEIR EXACT BYTE SIZES:
+- uint8 → 1 byte
+- uint16 → 2 bytes  
+- uint32 → 4 bytes
+- uint64 → 8 bytes
+- sint8 → 1 byte
+- sint16 → 2 bytes
+- sint32 → 4 bytes
+- sint64 → 8 bytes
+- id → 32 bytes (public key identifier)
+- bool → 1 byte
+- char → 1 byte
+- Array<T, N> → sizeof(T) * N bytes
+- Collection<T, N> → Variable size (not included in transaction payload)
+
+TYPESCRIPT TYPE MAPPING FOR FRONTEND:
+- uint8, uint16, uint32, uint64, sint8, sint16, sint32, sint64 → Long
+- id → PublicKey
+- bool → boolean
+- char → string
+- Array<T, N> → Array<TypeScriptType>
+
 REQUIRED ANALYSIS:
 1. Contract name and namespace
-2. All PUBLIC_FUNCTION and PUBLIC_PROCEDURE methods
-3. Input/output structures for each method (_input/_output suffixes)
-4. Fee requirements and validations
-5. Registration indices (REGISTER_USER_FUNCTION/PROCEDURE)
-6. Asset and share management logic
-7. Order book operations (if applicable)
+2. ALL PUBLIC_FUNCTION and PUBLIC_PROCEDURE methods
+3. Input/output structures with DETAILED FIELD INFORMATION
+4. EXACT byte size calculation for each field
+5. Field ordering for correct serialization
+6. Total package size for each method
+7. Fee requirements and validations
+8. Registration indices (REGISTER_USER_FUNCTION/PROCEDURE)
+9. Asset and share management logic
+10. Order book operations (if applicable)
 
-QUBIC DATA TYPES:
-- uint8, uint16, uint32, uint64 → unsigned integers (1,2,4,8 bytes)
-- sint8, sint16, sint32, sint64 → signed integers (1,2,4,8 bytes)
-- id → 32-byte public key identifier
-- Array<T, N> → fixed-size arrays
-- Collection<T, N> → dynamic collections with indexing
-- Asset → struct with issuer and assetName
+CRITICAL FIELD ANALYSIS:
+For each struct field, you must provide:
+- Field name (exact as in C++)
+- Qubic type (uint64, id, sint64, etc.)
+- TypeScript type for frontend
+- Exact byte size
+- Order position (0-based index for serialization)
+- Whether it's an array and array size
+- Any validation requirements
 
-QUBIC-SPECIFIC PATTERNS TO IDENTIFY:
-- invocationReward handling for fees
-- Share ownership/possession transfers
-- Order book manipulations (ask/bid orders)
-- Asset issuance and management
-- State synchronization between _assetOrders and _entityOrders
-- Fee calculations (assetIssuanceFee, transferFee, tradeFee)
+EXAMPLE INPUT STRUCT ANALYSIS:
+struct AddToAskOrder_input
+{{
+    id issuer;           // Field 0: 32 bytes
+    uint64 assetName;    // Field 1: 8 bytes  
+    sint64 price;        // Field 2: 8 bytes
+    sint64 numberOfShares; // Field 3: 8 bytes
+}}
+// Total package size: 32 + 8 + 8 + 8 = 56 bytes
 
 IMPORTANT FORMATTING RULES:
-- inputStruct and outputStruct should contain ONLY the actual field names and types from the struct definition
-- If a struct is empty (like Echo_input which has no fields), use empty object: {{}}
-- Do NOT include the struct name itself as a field
-- Only include the actual field names defined inside the struct
+- If a struct is empty (no fields), use empty arrays for inputFields/outputFields
+- Calculate exact packageSize by summing all input field byte sizes
+- Maintain field order exactly as defined in the struct
+- Include TypeScript types for frontend code generation
 
-EXAMPLES:
-- If struct has no fields: ""inputStruct"": {{}}
-- If struct has fields: ""inputStruct"": {{""fieldName"": ""fieldType""}}
-
-Return JSON in this exact format:
+Return JSON in this EXACT format:
 {{
-  ""contractName"": ""name"",
-  ""namespace"": ""namespace"",
+  ""contractName"": ""ContractName"",
+  ""namespace"": ""QPI"",
   ""methods"": [
     {{
       ""name"": ""MethodName"",
-      ""type"": ""FUNCTION"",
-      ""procedureIndex"": null,
-      ""inputStruct"": {{}},
-      ""outputStruct"": {{""fieldName"": ""fieldType""}},
-      ""fees"": {{""requiresFee"": false, ""feeType"": null, ""amount"": null}},
-      ""validations"": [],
-      ""description"": ""description"",
-      ""isAssetRelated"": false,
-      ""isOrderBookRelated"": false
+      ""type"": ""FUNCTION"" or ""PROCEDURE"",
+      ""procedureIndex"": null or number,
+      ""packageSize"": 56,
+      ""inputFields"": [
+        {{
+          ""name"": ""issuer"",
+          ""qubicType"": ""id"",
+          ""typeScriptType"": ""PublicKey"",
+          ""byteSize"": 32,
+          ""order"": 0,
+          ""isArray"": false,
+          ""arraySize"": null,
+          ""description"": ""Asset issuer public key"",
+          ""isRequired"": true,
+          ""defaultValue"": null,
+          ""validations"": [""Must be valid public key format""]
+        }},
+        {{
+          ""name"": ""assetName"",
+          ""qubicType"": ""uint64"",
+          ""typeScriptType"": ""Long"",
+          ""byteSize"": 8,
+          ""order"": 1,
+          ""isArray"": false,
+          ""arraySize"": null,
+          ""description"": ""Asset name as 64-bit integer"",
+          ""isRequired"": true,
+          ""defaultValue"": null,
+          ""validations"": [""Must be non-zero""]
+        }}
+      ],
+      ""outputFields"": [
+        {{
+          ""name"": ""addedNumberOfShares"",
+          ""qubicType"": ""sint64"",
+          ""typeScriptType"": ""Long"",
+          ""byteSize"": 8,
+          ""order"": 0,
+          ""isArray"": false,
+          ""arraySize"": null,
+          ""description"": ""Number of shares successfully added to order"",
+          ""isRequired"": true,
+          ""defaultValue"": null,
+          ""validations"": []
+        }}
+      ],
+      ""inputStruct"": {{""issuer"": ""id"", ""assetName"": ""uint64""}},
+      ""outputStruct"": {{""addedNumberOfShares"": ""sint64""}},
+      ""fees"": {{
+        ""requiresFee"": true,
+        ""feeType"": ""none"",
+        ""amount"": 0,
+        ""calculation"": ""No fee for ask orders""
+      }},
+      ""validations"": [
+        ""price must be greater than 0"",
+        ""numberOfShares must be greater than 0"",
+        ""Must own sufficient shares""
+      ],
+      ""description"": ""Adds shares to ask order book for selling"",
+      ""isAssetRelated"": true,
+      ""isOrderBookRelated"": true
     }}
   ]
-}}";
-        }
+}}
 
+SPECIAL CONSIDERATIONS:
+- Arrays: Calculate total bytes as elementSize * arrayLength
+- Nested structs: Sum all internal field sizes
+- Collection types: NOT included in transaction payload (state only)
+- Empty structs: packageSize = 0, empty inputFields array
+- Order matters: Fields must be in exact C++ struct definition order
+- Validation rules: Extract from contract code logic (fee checks, bounds, etc.)
+
+PROCEDURE vs FUNCTION IDENTIFICATION:
+- FUNCTION: Read-only, returns data, no state changes, no fees usually
+- PROCEDURE: Modifies state, may require fees, can transfer assets
+
+FEE ANALYSIS:
+- Look for invocationReward() checks in the code
+- Identify fee amounts from contract constants
+- Note fee calculation formulas (percentage-based, fixed amounts)
+- Identify which methods require payment vs which refund excess
+
+Generate complete analysis for ALL public methods found in the contract.";
+        }
 
         private string CreateCodeGenerationPrompt(ContractMethod method, string contractName, ProcessingOptions options)
         {
