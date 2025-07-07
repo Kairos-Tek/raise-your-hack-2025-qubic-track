@@ -14,11 +14,10 @@ export const routes: Routes = [
         component: AppLayout,
         children: [
             // dashboard
-            { path: '', component: IndexComponent, data: { title: 'Q-Audit' } },
+            { path: '', component: UploadAnalysisComponent, data: { title: 'Upload Analysis' } },
             { path: 'audit/results', component: ResultsDashboardComponent, data: { title: 'Results Dashboard' } },
             { path: 'audit/upload', component: UploadAnalysisComponent, data: { title: 'Upload Analysis' } },
             { path: 'audit/test/:contractId', component: TestManagementComponent, data: { title: 'Test Management' } },
-
         ],
     },
 

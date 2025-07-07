@@ -20,13 +20,14 @@
 
     <ng-container *ngIf="contractAnalysis">
         <ul class="flex flex-col gap-4 mt-8">
-            <li *ngFor="let method of contractAnalysis.methods">
-                <app-accordion [title]="getCardSubtitle(method)" [totalTests]="getSecurityTestCases(method).length">
-                    <icon-cube *ngIf="method.type != 'FUNCTION'" accordion-icon class="size-5 text-accent"></icon-cube>
-                    <icon-monitor *ngIf="method.type == 'FUNCTION'" accordion-icon
+            <li *ngFor="let methodUI of contractMethods">
+                <app-accordion [title]="methodUI.subtitle" [totalTests]="methodUI.testCases.length">
+                    <icon-cube *ngIf="methodUI.method.type != 'FUNCTION'" accordion-icon
+                        class="size-5 text-accent"></icon-cube>
+                    <icon-monitor *ngIf="methodUI.method.type == 'FUNCTION'" accordion-icon
                         class="size-5 text-accent"></icon-monitor>
                     <div accordion-body>
-                        <ng-datatable [rows]="getSecurityTestCases(method)" [columns]="cols" [showPageSize]="false"
+                        <ng-datatable [rows]="methodUI.testCases" [columns]="cols" [showPageSize]="false"
                             [pagination]="false" skin="whitespace-nowrap bh-table-hover">
                             <ng-template slot="action" let-value="data">
                                 <div class="text-center">
