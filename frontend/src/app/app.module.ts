@@ -49,6 +49,12 @@ import { PrimaryButtonComponent } from './shared/components/primary-button/prima
 import { BlockquoteComponent } from './shared/components/blockquote/blockquote.component';
 import { IconTestComponent } from './shared/icon/icon-test';
 import { CardComponent } from './shared/components/card/card.component';
+import { AccordionComponent } from './shared/components/accordion/accordion.component';
+import { DataTableModule } from '@bhplugin/ng-datatable';
+import { IconCubeComponent } from './shared/icon/icon-cube';
+import { CustomModalComponent } from './shared/components/modal/modal.component';
+import { IconMonitorComponent } from './shared/icon/icon-monitor';
+import { IconExperimentalComponent } from './shared/icon/icon-experimental';
 
 @NgModule({
     imports: [
@@ -57,6 +63,7 @@ import { CardComponent } from './shared/components/card/card.component';
         BrowserAnimationsModule,
         CommonModule,
         FormsModule,
+        DataTableModule,
         HttpClientModule,
         TranslateModule.forRoot({
             loader: {
@@ -88,7 +95,12 @@ import { CardComponent } from './shared/components/card/card.component';
         PrimaryButtonComponent,
         BlockquoteComponent,
         IconTestComponent,
-        CardComponent
+        CardComponent,
+        AccordionComponent,
+        IconCubeComponent,
+        CustomModalComponent,
+        IconMonitorComponent,
+        IconExperimentalComponent
     ],
     providers: [Title],
     bootstrap: [AppComponent],

@@ -1,21 +1,24 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { colDef } from '@bhplugin/ng-datatable';
 import { ContractService } from 'src/app/service/contract.service';
 import { SecurityTestExecutorService } from 'src/app/service/security-test-executor.service';
 import { ContractAnalysis } from 'src/app/shared/models/contract-analysis.model';
 import { ContractMethod } from 'src/app/shared/models/contract-method.models';
-import { Contract } from 'src/app/shared/models/contract.models';
 import { SecurityTestCase } from 'src/app/shared/models/security-test-case.model';
-import { TestCase } from 'src/app/shared/models/test-case.models';
-import { TestExecutionConfig } from 'src/app/shared/models/test-execution-config.model';
 
 @Component({
     selector: 'app-test-management',
     templateUrl: './test-management.component.html',
 })
 export class TestManagementComponent {
+
     contractId: string | null = null;
     contractAnalysis: ContractAnalysis | null = null;
+    cols: Array<colDef> = [];
+    rows: Array<any> = [];
+    showModal = false;
+    selectedSecurityTestCase: SecurityTestCase | null = null;
 
     constructor(
         private route: ActivatedRoute,
@@ -23,6 +26,8 @@ export class TestManagementComponent {
         private securityTestExecutorService: SecurityTestExecutorService,
     ) {
         this.contractId = this.route.snapshot.paramMap.get('contractId');
+
+        this.initDatatableColumns();
     }
 
     ngOnInit() {
@@ -36,6 +41,18 @@ export class TestManagementComponent {
                 },
             });
         }
+    }
+
+    initDatatableColumns(){
+        this.cols = [
+            { field: "id", title: "ID", filter: false, hide: true },
+            { field: "testName", title: "Test Name" },
+            { field: "actualRisk", title: "Actual Risk" },
+            { field: "description", title: "Description" },
+            { field: "vulnerabilityType", title: "Vulnerability Type" },
+            { field: "severity", title: "Severity" },
+            { field: 'action', title: 'Action', sort: false, headerClass: 'justify-center' }
+        ];
     }
 
     executeTestCase(testCase: SecurityTestCase, method: ContractMethod) {
@@ -59,5 +76,11 @@ export class TestManagementComponent {
 
     getSecurityTestCases(method: ContractMethod): SecurityTestCase[] {
         return this.contractAnalysis?.securityAudit?.securityTests.filter((testCase) => testCase.methodName === method.name) || [];
+    }
+
+    showDetails(testCase: SecurityTestCase) {
+
+        this.selectedSecurityTestCase = testCase;
+        this.showModal = true;
     }
 }
