@@ -49,6 +49,10 @@ export class TestManagementComponent {
         });
     }
 
+    download() {
+        this.contractService.downloadContract(this.contractAnalysis?.id!);
+    }
+
     getCardSubtitle(method: ContractMethod): string {
         return `${method.name}(${method.inputFields.map((f) => `${f.name} ${f.qubicType}`).join(', ')}) : ${method.outputFields.map((f) => `${f.name} ${f.qubicType}`).join(', ')}`;
     }

@@ -7,6 +7,7 @@ using RYH2025_Qubic.Persistence;
 using RYH2025_Qubic.Services;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Text.Json;
 
 namespace RYH2025_Qubic.Controllers
 {
@@ -59,6 +60,46 @@ namespace RYH2025_Qubic.Controllers
             }
         }
 
+        [HttpPost("save-execution-result")]
+        public async Task<IActionResult> SaveExecutionResult([FromBody] SaveExecutionResultRequest request)
+        {
+            try
+            {
+                var testCase = await _dbContext.SecurityTestCases
+                    .FirstOrDefaultAsync(tc => tc.Id == request.TestCaseId);
+
+                if (testCase == null)
+                {
+                    return NotFound($"SecurityTestCase with ID {request.TestCaseId} not found");
+                }
+
+                testCase.ExecutionResultJson = JsonSerializer.Serialize(request.ExecutionResult, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                testCase.LastExecutedAt = DateTime.UtcNow;
+                testCase.ExecutionStatus = request.ExecutionResult.ExecutionStatus;
+                testCase.VulnerabilityConfirmed = request.ExecutionResult.SecurityAssessment?.VulnerabilityConfirmed;
+                testCase.RiskLevel = request.ExecutionResult.SecurityAssessment?.RiskLevel;
+
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Execution result saved successfully",
+                    testCaseId = request.TestCaseId,
+                    executionStatus = testCase.ExecutionStatus,
+                    vulnerabilityConfirmed = testCase.VulnerabilityConfirmed
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+            }
+        }
+
         // GET: api/contracts
         [HttpGet]
         public async Task<ActionResult> GetContracts()
@@ -69,10 +110,6 @@ namespace RYH2025_Qubic.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult> GetContract([FromRoute] Guid id)
         {
-            //return Ok(_dbContext.ContractAnalyses
-            //                    .Include(x => x.Methods)
-            //                    .ThenInclude(x => x.SecurityTestCases)
-            //                    .FirstOrDefault(x => x.Id == id));
             return Ok(_dbContext.ContractAnalyses
                                 .Include(x => x.SecurityAudit)
                                 .ThenInclude(x => x.Vulnerabilities)

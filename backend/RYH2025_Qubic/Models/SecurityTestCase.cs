@@ -24,12 +24,18 @@ namespace RYH2025_Qubic.Models
         public string ExpectedBehavior { get; set; } = string.Empty;
         public string ActualRisk { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        // Stored as JSON
+        
         [Column(TypeName = "jsonb")]
         public string TestInputsJson { get; set; } = "{}";
 
         [Column(TypeName = "jsonb")]
         public string MitigationStepsJson { get; set; } = "[]";
+        [Column(TypeName = "jsonb")]
+        public string? ExecutionResultJson { get; set; }
+        public DateTime? LastExecutedAt { get; set; }
+        public string? ExecutionStatus { get; set; }
+        public bool? VulnerabilityConfirmed { get; set; }
+        public string? RiskLevel { get; set; }
 
         [JsonIgnore]
         [ForeignKey("SecurityAuditResultId")]
@@ -39,7 +45,6 @@ namespace RYH2025_Qubic.Models
         [ForeignKey("ContractMethodId")]
         public virtual ContractMethod ContractMethod { get; set; } = null!;
 
-        // Helper properties
         [NotMapped]
         public Dictionary<string, object> TestInputs
         {

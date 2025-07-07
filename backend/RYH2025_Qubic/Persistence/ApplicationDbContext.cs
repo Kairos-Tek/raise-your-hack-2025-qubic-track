@@ -142,6 +142,20 @@ namespace RYH2025_Qubic.Persistence
                 entity.Property(e => e.ExpectedBehavior).HasMaxLength(500);
                 entity.Property(e => e.ActualRisk).HasMaxLength(500);
 
+                entity.Property(e => e.ExecutionResultJson)
+                               .HasColumnType("jsonb")
+                               .IsRequired(false);
+                entity.Property(e => e.LastExecutedAt)
+                    .IsRequired(false);
+                entity.Property(e => e.ExecutionStatus)
+                    .HasMaxLength(50)
+                    .IsRequired(false);
+                entity.Property(e => e.VulnerabilityConfirmed)
+                    .IsRequired(false);
+                entity.Property(e => e.RiskLevel)
+                    .HasMaxLength(50)
+                    .IsRequired(false);
+
                 entity.HasOne(e => e.SecurityAuditResult)
                       .WithMany(e => e.SecurityTests)
                       .HasForeignKey(e => e.SecurityAuditResultId)

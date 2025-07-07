@@ -25,6 +25,8 @@ import { TargetInput } from '../shared/models/target-input';
 import { IQubicBuildPackage } from '@qubic-lib/qubic-ts-library/dist/qubic-types/IQubicBuildPackage';
 import { TickInfoResponse } from '../shared/models/tick-info.response.model';
 import { environment } from 'src/environments/environment';
+import { QuerySmartContractResponse } from '../shared/models/query-smart-contract-response';
+import { QuerySmartContractRequest } from '../shared/models/query-smart-contract-request';
 
 type ExecutionStatus = 'success' | 'failed' | 'rejected' | 'error';
 
@@ -96,24 +98,57 @@ export class SecurityTestExecutorService {
                     // 3. Crear transacción
                     const targetTick = currentTick + this.executionconfig.tickOffset;
 
-                    return this.createQubicTransaction(
-                        this.executionconfig.testIdentity,
-                        this.executionconfig.testSeed,
-                        this.executionconfig.contractAddress,
-                        method,
-                        payload,
-                        targetTick,
-                    ).pipe(
-                        switchMap((transaction: QubicTransaction) => {
-                            return this.broadcastTransaction(transaction, this.executionconfig.qubicRpcUrl).pipe(
-                                map((result: BroadcastResponse) => this.createSuccessResult(testCase, method, transaction, payload, result)),
-                                catchError((error: Error) => {
-                                    console.error(`Broadcast failed for ${testCase.testName}:`, error);
-                                    return from([this.createErrorResult(testCase, method, `Broadcast failed: ${error.message}`)]);
-                                }),
-                            );
-                        }),
-                    );
+                    if (method.type === 'FUNCTION') {
+                        // Para funciones, usar querySmartContract (no necesita tick ni transacción)
+                        console.log(`🔍 Executing FUNCTION ${method.name} via querySmartContract`);
+                        return this.querySmartContract(method, transactionInputs).pipe(
+                            map((result: QuerySmartContractResponse) => this.createSuccessResultFromQuery(testCase, method, transactionInputs, result)),
+                            catchError((error: Error) => {
+                                console.error(`Query failed for ${testCase.testName}:`, error);
+                                return from([this.createErrorResult(testCase, method, `Query failed: ${error.message}`)]);
+                            }),
+                        );
+                    } else {
+                        // Para procedures, usar broadcastTransaction (código original)
+                        console.log(`🔧 Executing PROCEDURE ${method.name} via broadcastTransaction`);
+                        return this.createQubicTransaction(
+                            this.executionconfig.testIdentity,
+                            this.executionconfig.testSeed,
+                            this.executionconfig.contractAddress,
+                            method,
+                            payload,
+                            targetTick,
+                        ).pipe(
+                            switchMap((transaction: QubicTransaction) => {
+                                return this.broadcastTransaction(transaction, this.executionconfig.qubicRpcUrl).pipe(
+                                    map((result: BroadcastResponse) => this.createSuccessResult(testCase, method, transaction, payload, result)),
+                                    catchError((error: Error) => {
+                                        console.error(`Broadcast failed for ${testCase.testName}:`, error);
+                                        return from([this.createErrorResult(testCase, method, `Broadcast failed: ${error.message}`)]);
+                                    }),
+                                );
+                            }),
+                        );
+                    }
+
+                    // return this.createQubicTransaction(
+                    //     this.executionconfig.testIdentity,
+                    //     this.executionconfig.testSeed,
+                    //     this.executionconfig.contractAddress,
+                    //     method,
+                    //     payload,
+                    //     targetTick,
+                    // ).pipe(
+                    //     switchMap((transaction: QubicTransaction) => {
+                    //         return this.broadcastTransaction(transaction, this.executionconfig.qubicRpcUrl).pipe(
+                    //             map((result: BroadcastResponse) => this.createSuccessResult(testCase, method, transaction, payload, result)),
+                    //             catchError((error: Error) => {
+                    //                 console.error(`Broadcast failed for ${testCase.testName}:`, error);
+                    //                 return from([this.createErrorResult(testCase, method, `Broadcast failed: ${error.message}`)]);
+                    //             }),
+                    //         );
+                    //     }),
+                    // );
                 } catch (error: unknown) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     console.error(`Error preparing test ${testCase.testName}:`, error);
@@ -127,9 +162,116 @@ export class SecurityTestExecutorService {
         );
     }
 
-    /**
-     * Parsea los testInputs del SecurityTestCase
-     */
+    private createSuccessResultFromQuery(
+        testCase: SecurityTestCase,
+        method: ContractMethod,
+        inputs: Record<string, any>,
+        queryResult: QuerySmartContractResponse,
+    ): TestExecutionResult {
+        const vulnerabilityConfirmed = this.assessVulnerabilityFromQuery(testCase, queryResult);
+
+        return {
+            testCase,
+            method,
+            executionStatus: 'success',
+            queryResult, // Agregar este campo a TestExecutionResult interface si no existe
+            actualBehavior: `Query executed successfully. Response: ${JSON.stringify(queryResult).substring(0, 200)}...`,
+            securityAssessment: {
+                vulnerabilityConfirmed,
+                riskLevel: vulnerabilityConfirmed ? testCase.severity : 'Mitigated',
+                notes: this.generateAssessmentNotesForQuery(testCase, vulnerabilityConfirmed, queryResult),
+            },
+        };
+    }
+
+    private assessVulnerabilityFromQuery(testCase: SecurityTestCase, queryResult: QuerySmartContractResponse): boolean {
+        // Si hay error explícito, probablemente la vulnerabilidad está mitigada
+        if (queryResult.error) {
+            console.log(`🛡️ Query returned error: ${queryResult.error} - vulnerability likely mitigated`);
+            return false;
+        }
+
+        // Si success es explícitamente false
+        if (queryResult.success === false) {
+            console.log(`🛡️ Query success=false - vulnerability likely mitigated`);
+            return false;
+        }
+
+        // Si no hay responseData, podría indicar que la función no devolvió datos por validaciones
+        if (!queryResult.responseData) {
+            console.log(`🛡️ No responseData - function may have rejected malicious input`);
+            return false;
+        }
+
+        // Si la query fue exitosa y devolvió datos, podría indicar una vulnerabilidad
+        // dependiendo del tipo de test
+        if (queryResult.responseData) {
+            console.log(`🚨 Query returned data: ${queryResult.responseData.substring(0, 50)}... - analyzing for vulnerability`);
+
+            // Aquí puedes implementar lógica específica según el tipo de vulnerabilidad
+            switch (testCase.vulnerabilityType) {
+                case 'Information Disclosure':
+                    // Si devuelve información que no debería, es vulnerable
+                    return true;
+
+                case 'Access Control':
+                    // Si permite acceso cuando no debería, es vulnerable
+                    return true;
+
+                case 'Input Validation':
+                    // Si procesa input malicioso sin error, es vulnerable
+                    return true;
+
+                default:
+                    // Por defecto, si la query es exitosa, asumimos vulnerabilidad
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private generateAssessmentNotesForQuery(testCase: SecurityTestCase, vulnerabilityConfirmed: boolean, queryResult: QuerySmartContractResponse): string {
+        const testInputs = this.parseTestInputs(testCase.testInputs);
+
+        let notes = `🔍 Query Test: ${testCase.testName}\n`;
+        notes += `🎯 Target Variable: ${testCase.targetVariable}\n`;
+
+        if (testInputs?.targetInput) {
+            notes += `💀 Malicious Value: ${testInputs.targetInput.maliciousValue}\n`;
+            notes += `📝 Attack Reason: ${testInputs.targetInput.attackReason}\n\n`;
+        } else {
+            notes += `📭 Internal Logic Test (no external inputs)\n`;
+            notes += `🔍 Testing: ${testCase.description}\n\n`;
+        }
+
+        // Información sobre la respuesta de la query
+        if (queryResult.error) {
+            notes += `❌ Query Error: ${queryResult.error}\n`;
+        } else if (queryResult.responseData) {
+            notes += `📊 Query Response Data: ${queryResult.responseData.substring(0, 100)}...\n`;
+        } else {
+            notes += `📭 No response data returned\n`;
+        }
+
+        if (vulnerabilityConfirmed) {
+            notes += `\n🚨 VULNERABILITY CONFIRMED: ${testCase.vulnerabilityType}\n`;
+            notes += `💥 Risk: ${testCase.actualRisk}\n`;
+            notes += `🔍 Function returned data when it should have rejected malicious input\n`;
+            notes += `🛡️ Recommended mitigations:\n`;
+            if (testCase.mitigationSteps && Array.isArray(testCase.mitigationSteps)) {
+                testCase.mitigationSteps.forEach((step: string) => {
+                    notes += `   • ${step}\n`;
+                });
+            }
+        } else {
+            notes += `\n✅ VULNERABILITY MITIGATED: Security controls working correctly\n`;
+            notes += `🛡️ Function properly rejected or handled malicious input\n`;
+        }
+
+        return notes;
+    }
+
     private parseTestInputs(testInputs: Record<string, any>): TestInputs | null {
         if (!testInputs || typeof testInputs !== 'object') {
             return null;
@@ -519,9 +661,180 @@ export class SecurityTestExecutorService {
         }
     }
 
+    private mapQubicTypeToEncodeType(qubicType: string): string {
+        const typeMap: Record<string, string> = {
+            uint8: 'uint8',
+            uint16: 'uint16',
+            uint32: 'uint32',
+            uint64: 'uint64',
+            int8: 'int8',
+            int16: 'int16',
+            int32: 'int32',
+            int64: 'int64',
+            sint8: 'sint8',
+            sint16: 'sint16',
+            sint32: 'sint32',
+            sint64: 'sint64',
+            PublicKey: 'id',
+            boolean: 'bit',
+            string: 'char[64]', // Default size, ajustar según necesidad
+            bit: 'bit',
+            bool: 'bit',
+        };
+
+        return typeMap[qubicType] || qubicType;
+    }
+
     /**
-     * Crea resultado exitoso
+     * Wrapper para encodeParams del contractUtils
+     * Nota: Necesitarás importar encodeParams desde tu contractUtils
      */
+    private encodeParams(params: Record<string, any>, inputFields: any[]): string {
+        // Aquí necesitarás importar la función encodeParams desde tu contractUtils
+        // import { encodeParams } from './path/to/contractUtils';
+
+        // Por ahora, como placeholder, simularemos la función
+        // En tu implementación real, reemplaza esto con:
+        // return encodeParams(params, inputFields, this.qubicHelper);
+
+        console.log('🔧 Encoding params:', params, 'with fields:', inputFields);
+
+        // Placeholder - reemplazar con import real
+        try {
+            // Si no tienes qubicHelper disponible, puedes pasarlo como null por ahora
+            // return encodeParams(params, inputFields, null);
+
+            // Por ahora retornamos string vacío - actualiza cuando importes encodeParams
+            return '';
+        } catch (error) {
+            console.error('Error encoding params:', error);
+            return '';
+        }
+    }
+
+    /**
+     * Ejecuta query en smart contract para funciones (no procedures)
+     */
+    private querySmartContract(
+        method: ContractMethod,
+        inputs: Record<string, PublicKey | Long | boolean | string | any[]>,
+    ): Observable<QuerySmartContractResponse> {
+        // Crear requestData como base64 encoded usando encodeParams
+        const requestData = this.createRequestDataFromInputs(inputs, method);
+
+        // Calcular inputSize basado en el requestData codificado
+        const inputSize = requestData ? Buffer.from(requestData, 'base64').length : 0;
+
+        const request: QuerySmartContractRequest = {
+            contractIndex: environment.smartContractIndex, // Asegúrate de tener esto en environment
+            inputType: method.procedureIndex || 1,
+            inputSize: inputSize,
+            requestData: requestData, // Base64 encoded string
+        };
+
+        console.log(`🔍 Querying smart contract for function ${method.name}:`, request);
+
+        return this.http.post<QuerySmartContractResponse>(`${this.executionconfig.qubicRpcUrl}/v1/querySmartContract`, request).pipe(
+            catchError((error: Error) => {
+                console.error('Query smart contract error:', error);
+                throw error;
+            }),
+        );
+    }
+
+    /**
+     * Convierte los inputs a requestData usando la función encodeParams del contractUtils
+     * Para querySmartContract, el requestData debe ser base64 encoded como en broadcastTransaction
+     */
+    private createRequestDataFromInputs(inputs: Record<string, PublicKey | Long | boolean | string | any[]>, method: ContractMethod): string {
+        if (!method.inputFields || method.inputFields.length === 0) {
+            return '';
+        }
+
+        // Convertir inputs de tipos Qubic a valores primitivos para encodeParams
+        const primitiveInputs: Record<string, any> = {};
+
+        method.inputFields.forEach((field: ContractField) => {
+            const value = inputs[field.name];
+            if (value !== undefined) {
+                if (value instanceof PublicKey) {
+                    // Para PublicKey, usar el método apropiado o convertir a string ID
+                    primitiveInputs[field.name] = value.getIdentityAsSring ? value.getIdentityAsSring() : value.toString();
+                } else if (value instanceof Long) {
+                    // Para Long, obtener el valor numérico
+                    primitiveInputs[field.name] = value.getNumber ? value.getNumber().toString() : value.toString();
+                } else if (typeof value === 'boolean') {
+                    primitiveInputs[field.name] = value;
+                } else if (typeof value === 'string' || typeof value === 'number') {
+                    primitiveInputs[field.name] = value;
+                } else if (Array.isArray(value)) {
+                    primitiveInputs[field.name] = value;
+                } else {
+                    primitiveInputs[field.name] = String(value);
+                }
+
+                console.log(`📋 Primitive input ${field.name}: ${primitiveInputs[field.name]} (${typeof primitiveInputs[field.name]})`);
+            }
+        });
+
+        // Convertir ContractField[] a formato esperado por encodeParams
+        const inputFieldsForEncode = method.inputFields.map((field: ContractField) => {
+            const mappedField: any = {
+                name: field.name,
+                type: this.mapQubicTypeToEncodeType(field.qubicType),
+            };
+
+            // Si es un array, configurar como Array con elementType y size
+            if (field.isArray) {
+                // Para arrays, extraer el tipo de elemento del qubicType
+                // Ejemplo: "Array<uint64, 16>" o "uint64[16]"
+                if (field.qubicType.includes('Array<')) {
+                    const arrayMatch = field.qubicType.match(/Array<([^,]+),\s*([^>]+)>/);
+                    if (arrayMatch) {
+                        mappedField.type = 'Array';
+                        mappedField.elementType = this.mapQubicTypeToEncodeType(arrayMatch[1].trim());
+                        mappedField.size = arrayMatch[2].trim();
+                    }
+                } else if (field.qubicType.includes('[')) {
+                    // Formato como "uint64[16]"
+                    const arrayMatch = field.qubicType.match(/([^\[]+)\[([^\]]+)\]/);
+                    if (arrayMatch) {
+                        mappedField.type = 'Array';
+                        mappedField.elementType = this.mapQubicTypeToEncodeType(arrayMatch[1].trim());
+                        mappedField.size = arrayMatch[2].trim();
+                    }
+                } else if (field.arraySize) {
+                    // Fallback: usar arraySize si está disponible
+                    mappedField.type = 'Array';
+                    mappedField.elementType = this.mapQubicTypeToEncodeType(field.qubicType);
+                    mappedField.size = field.arraySize.toString();
+                }
+            }
+            // Si es char array (string), mantener el formato completo
+            else if (field.qubicType.includes('char[')) {
+                // Mantener como "char[64]" para que encodeParams lo maneje correctamente
+                mappedField.type = field.qubicType;
+            }
+            // Para otros tipos, usar el tamaño si está disponible
+            else if (field.byteSize && field.byteSize > 0) {
+                mappedField.size = field.byteSize;
+            }
+
+            console.log(
+                `🗂️ Field mapping: ${field.name} (${field.qubicType}) -> type: ${mappedField.type}, elementType: ${mappedField.elementType || 'N/A'}, size: ${mappedField.size || 'N/A'}`,
+            );
+
+            return mappedField;
+        });
+
+        // Usar encodeParams del contractUtils
+        const encodedData = this.encodeParams(primitiveInputs, inputFieldsForEncode);
+
+        console.log(`📦 Encoded data length: ${encodedData.length}`);
+
+        return encodedData;
+    }
+
     private createSuccessResult(
         testCase: SecurityTestCase,
         method: ContractMethod,

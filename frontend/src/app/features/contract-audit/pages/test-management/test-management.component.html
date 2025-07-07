@@ -2,7 +2,8 @@
     <h2 class="font-semibold text-lg text-white">Test Cases Management</h2>
 
     <p>Managing test cases for contract ID: {{ contractId }}</p>
-
+    <app-primary-button type="button" [disabled]="false" [loading]="false" (click)="download()" text="Download">
+    </app-primary-button>
 
     <ng-container *ngIf="contractAnalysis">
         <p class="text-gray-400">No contract analysis available.</p>

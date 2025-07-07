@@ -5,6 +5,7 @@ import { AnalyzeContractRequest } from '../shared/models/requests.models';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { ContractAnalysis } from '../shared/models/contract-analysis.model';
+import { TestExecutionResult } from '../shared/models/test-execution-result.model';
 
 @Injectable({
     providedIn: 'root',
@@ -109,6 +110,54 @@ export class ContractService {
         return this.http.post<ContractAnalysis>(`${this.apiUrl}/analyze`, formData);
     }
 
+    saveExecutionResults(result: TestExecutionResult): Observable<any> {
+        const payload = {
+            testCaseId: result.testCase.id, // Asume que SecurityTestCase tiene un id
+            executionResult: this.sanitizeExecutionResultForSave(result),
+        };
+
+        return this.http.post(`${environment.apiUrl}/api/security-test-cases/save-execution-result`, payload);
+    }
+
+    private sanitizeExecutionResultForSave(result: TestExecutionResult): any {
+        return {
+            executionStatus: result.executionStatus,
+            actualBehavior: result.actualBehavior,
+            error: result.error,
+            securityAssessment: {
+                vulnerabilityConfirmed: result.securityAssessment.vulnerabilityConfirmed,
+                riskLevel: result.securityAssessment.riskLevel,
+                notes: result.securityAssessment.notes,
+            },
+            // Para broadcast results
+            broadcastResult: result.broadcastResult
+                ? {
+                      peersBroadcasted: result.broadcastResult.peersBroadcasted,
+                      encodedTransaction: result.broadcastResult.encodedTransaction,
+                      transactionId: result.broadcastResult.transactionId,
+                  }
+                : null,
+            // Para query results
+            queryResult: result.queryResult
+                ? {
+                      responseData: result.queryResult.responseData,
+                      success: result.queryResult.success,
+                      error: result.queryResult.error,
+                  }
+                : null,
+            // Información básica de la transacción (sin objetos complejos)
+            transactionInfo: result.transaction ? result.transaction : null,
+            // Información del payload
+            payloadInfo: result.payload
+                ? {
+                      packageSize: result.payload.getPackageSize(),
+                      // No incluir los datos binarios completos para ahorrar espacio
+                  }
+                : null,
+            executedAt: new Date().toISOString(),
+        };
+    }
+
     deployContract(contractId: string): Observable<any> {
         // Mock implementation
         return new Observable<any>((observer) => {
@@ -132,5 +181,22 @@ export class ContractService {
 
     getContract(contractId: string): Observable<ContractAnalysis> {
         return this.http.get<ContractAnalysis>(`${this.apiUrl}/${contractId}`);
+    }
+
+    downloadContract(contractId: string) {
+        this.getContract(contractId).subscribe({
+            next: (contractAnalysis) => {
+                const jsonString = JSON.stringify(contractAnalysis, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `full-report-${contractAnalysis.contractName}.json`;
+                link.click();
+
+                window.URL.revokeObjectURL(url);
+            },
+        });
     }
 }
