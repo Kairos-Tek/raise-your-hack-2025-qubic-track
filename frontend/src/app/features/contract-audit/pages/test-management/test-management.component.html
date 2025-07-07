@@ -12,12 +12,12 @@
                 <p class="font-semibold text-sm text-aqua px-4 py-2">{{
                     this.contractAnalysis?.securityAudit?.securityTests?.length }} generated cases will be executed</p>
             </div>
-            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Download" (click)="download()">
-            </app-primary-button>
-            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Execute (De verdad)"
-                (click)="executeCasesDeVerdad()">
-                <icon-play-circle class="w-5 h-5" />
-            </app-primary-button>
+
+            <button class="flex gap-2 items-center btn btn-outline-dark text-white/75 cursor-pointer" (click)="download()">
+                <icon-download class="w-4 h-4" />
+                <span>Download</span>
+            </button>
+    
             <app-primary-button type="button" [disabled]="false" [loading]="false" text="Execute"
                 (click)="goToExecuteCases()">
                 <icon-play-circle class="w-5 h-5" />
@@ -36,9 +36,16 @@
                     <div accordion-body>
                         <ng-datatable [rows]="methodUI.testCases" [columns]="cols" [showPageSize]="false"
                             [pagination]="false" skin="whitespace-nowrap bh-table-hover">
+
+                             <ng-template slot="actualRisk" let-value="data">
+                                <p class="max-w-[350px] truncate">{{ value.actualRisk }}</p>
+                            </ng-template>
+
+                            <ng-template slot="description" let-value="data">
+                                <p class="max-w-[350px] truncate">{{ value.description }}</p>
+                            </ng-template>
                             <ng-template slot="action" let-value="data">
                                 <div class="text-center">
-                                    <h1 *ngIf="value.lastExecutedAt">EJECUTADO</h1>
                                     <button type="button" class="text-accent flex items-center gap-2 border"
                                         (click)="showDetails(value)">
                                         <icon-eye class="size-5" />

@@ -10,7 +10,7 @@ export class AccordionComponent {
 
   @Input() title: string = '';
   @Input() totalTests: number = 0;
-  open = false;
+  open = true;
 
   toggle() {
     this.open = !this.open;

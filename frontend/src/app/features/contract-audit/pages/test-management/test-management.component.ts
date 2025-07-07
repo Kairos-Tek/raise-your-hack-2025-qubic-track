@@ -28,7 +28,6 @@ export class TestManagementComponent {
     constructor(
         private route: ActivatedRoute,
         private contractService: ContractService,
-        private securityTestExecutorService: SecurityTestExecutorService,
         private router: Router,
     ) {
         this.contractId = this.route.snapshot.paramMap.get('contractId');
@@ -60,17 +59,6 @@ export class TestManagementComponent {
             { field: 'severity', title: 'Severity' },
             { field: 'action', title: 'Action', sort: false, headerClass: 'justify-center' },
         ];
-    }
-
-    executeTestCase(testCase: SecurityTestCase, method: ContractMethod) {
-        this.securityTestExecutorService.executeSecurityTest(testCase, method).subscribe({
-            next: (result) => {
-                console.log('Test executed successfully:', result);
-            },
-            error: (error) => {
-                console.error('Error executing test:', error);
-            },
-        });
     }
 
     download() {
@@ -112,37 +100,5 @@ export class TestManagementComponent {
 
     goToExecuteCases() {
         this.router.navigate(['/audit/results/', this.contractId]);
-    }
-
-    executeCasesDeVerdad() {
-        this.contractMethods.forEach((methodUI) => {
-            methodUI.testCases.forEach((testCase) => {
-                this.securityTestExecutorService.executeSecurityTest(testCase, methodUI.method).subscribe({
-                    next: (result) => {
-                        debugger; // For debugging purposes, you can remove this later
-                        this.contractService.saveExecutionResults(result).subscribe({
-                            next: (saveResult) => {
-                                testCase = saveResult;
-                                this.contractMethods = this.contractMethods.map((m) => {
-                                    if (m.method.id === methodUI.method.id) {
-                                        return {
-                                            ...m,
-                                            testCases: m.testCases.map((tc) => (tc.id === testCase.id ? testCase : tc)),
-                                        };
-                                    } else {
-                                        return { ...m };
-                                    }
-                                });
-                            },
-                        });
-                        console.log('All tests executed successfully:', result);
-                    },
-                    error: (error) => {
-                        debugger; // For debugging purposes, you can remove this later
-                        console.error('Error executing all tests:', error);
-                    },
-                });
-            });
-        });
     }
 }

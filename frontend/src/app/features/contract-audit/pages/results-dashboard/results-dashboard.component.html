@@ -1,14 +1,62 @@
 <div class="panel">
-    <h2 class="font-semibold text-lg text-white">Results Dashboard</h2>
+    <h2 class="font-semibold text-lg text-white">Tests execution: {{ contractAnalysis?.contractName }}</h2>
 
     <section class="mt-8">
         <div class="flex flex-col gap-2">
-
             <div class="flex items-center justify-between">
-                <p class="text-sm">This preocess usually takes about a minute</p>
-                <p class="text-sm text-white">57/126 completed</p>
+                <p class="text-sm" *ngIf="totalCases > testCasesExecuted">This process usually takes about {{ (totalCases - testCasesExecuted) }} minutes</p>
+                <p class="text-sm text-white" *ngIf="testCasesExecuted === totalCases">Done!</p>
+                <p class="text-sm text-white">{{ testCasesExecuted }}/{{ totalCases }} completed</p>
             </div>
-            <app-progress-bar [progress]="45"></app-progress-bar>
+            <app-progress-bar [progress]="(testCasesExecuted / totalCases) * 100"></app-progress-bar>
         </div>
     </section>
+
+    <section>
+        <ng-container *ngIf="contractAnalysis">
+            <ul class="flex flex-col gap-4 mt-8">
+                <li *ngFor="let methodUI of contractMethods">
+                    <app-accordion [title]="methodUI.subtitle" [totalTests]="methodUI.testCases.length">
+                        <icon-cube *ngIf="methodUI.method.type != 'FUNCTION'" accordion-icon class="size-5 text-accent"></icon-cube>
+                        <icon-monitor *ngIf="methodUI.method.type == 'FUNCTION'" accordion-icon class="size-5 text-accent"></icon-monitor>
+                        <div accordion-body>
+                            <ng-datatable
+                                [rows]="methodUI.testCases"
+                                [columns]="cols"
+                                [showPageSize]="false"
+                                [pagination]="false"
+                                skin="whitespace-nowrap bh-table-hover"
+                            >
+                                <ng-template slot="actualRisk" let-value="data">
+                                    <p class="max-w-[350px] truncate">{{ value.actualRisk }}</p>
+                                </ng-template>
+
+                                <ng-template slot="description" let-value="data">
+                                    <p class="max-w-[350px] truncate">{{ value.description }}</p>
+                                </ng-template>
+
+                                <ng-template slot="status" let-value="data">
+                                    <span class="text-green-400 border border-green-400 rounded-full py-1 px-2 text-[10px]" *ngIf="value.lastExecutedAt">Executed</span>
+                                    <span class="text-white/75 border border-white/75 rounded-full py-1 px-2 text-[10px]" *ngIf="!value.lastExecutedAt">Pending</span>
+                                </ng-template>
+
+                                <ng-template slot="action" let-value="data">
+                                    <div class="text-center">
+                                        <button type="button" class="text-accent flex items-center gap-2 border" (click)="showDetails(value)">
+                                            <icon-eye class="size-5" />
+                                            <span class="text-xs">View Details</span>
+                                        </button>
+                                    </div>
+                                </ng-template>
+                            </ng-datatable>
+                        </div>
+                    </app-accordion>
+                </li>
+            </ul>
+        </ng-container>
+    </section>
 </div>
+
+<app-custom-modal [open]="showModal" [title]="selectedSecurityTestCase?.methodName!" (closeModal)="showModal = false">
+    {{ selectedSecurityTestCase | json }}
+</app-custom-modal>
