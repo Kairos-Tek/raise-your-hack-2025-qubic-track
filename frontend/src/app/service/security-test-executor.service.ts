@@ -122,9 +122,11 @@ export class SecurityTestExecutorService {
                             targetTick,
                         ).pipe(
                             switchMap((transaction: QubicTransaction) => {
+                                debugger;
                                 return this.broadcastTransaction(transaction, this.executionconfig.qubicRpcUrl).pipe(
                                     map((result: BroadcastResponse) => this.createSuccessResult(testCase, method, transaction, payload, result)),
                                     catchError((error: Error) => {
+                                        debugger;
                                         console.error(`Broadcast failed for ${testCase.testName}:`, error);
                                         return from([this.createErrorResult(testCase, method, `Broadcast failed: ${error.message}`)]);
                                     }),
@@ -589,7 +591,7 @@ export class SecurityTestExecutorService {
                         console.log(`🔧 Procedure call - InputType: ${inputType}, InputSize: ${payload.getPackageSize()}`);
 
                         const feeAmount = this.extractFeeAmount(method.fees);
-                        transaction.setAmount(new Long(BigInt(feeAmount)));
+                        transaction.setAmount(new Long(feeAmount));
                         console.log(`💰 Amount: ${feeAmount}`);
                     }
 
@@ -651,7 +653,10 @@ export class SecurityTestExecutorService {
                 encodedTransaction: encodedTransaction,
             };
 
-            return this.http.post<BroadcastResponse>(`${apiUrl}/v1/broadcast-transaction`, request).pipe(
+            // Convertir BigInt a string para evitar error de serialización
+            const sanitizedRequest = this.sanitizeForJson(request);
+
+            return this.http.post<BroadcastResponse>(`${apiUrl}/v1/broadcast-transaction`, sanitizedRequest).pipe(
                 catchError((error: Error) => {
                     console.error('Broadcast error:', error);
                     throw error;
@@ -661,6 +666,30 @@ export class SecurityTestExecutorService {
             console.error('Error encoding transaction:', error);
             throw error;
         }
+    }
+
+    private sanitizeForJson(obj: any): any {
+        if (obj === null || obj === undefined) {
+            return obj;
+        }
+
+        if (typeof obj === 'bigint') {
+            return obj.toString();
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map((item) => this.sanitizeForJson(item));
+        }
+
+        if (typeof obj === 'object') {
+            const sanitized: any = {};
+            for (const [key, value] of Object.entries(obj)) {
+                sanitized[key] = this.sanitizeForJson(value);
+            }
+            return sanitized;
+        }
+
+        return obj;
     }
 
     private mapQubicTypeToEncodeType(qubicType: string): string {
@@ -800,7 +829,6 @@ export class SecurityTestExecutorService {
         });
 
         // Usar encodeParams del contractUtils
-        debugger;
         const encodedData = encodeParams(primitiveInputs, inputFieldsForEncode);
 
         console.log(`📦 Encoded data length: ${encodedData.length}`);
@@ -815,6 +843,7 @@ export class SecurityTestExecutorService {
         payload: DynamicPayload,
         broadcastResult: BroadcastResponse,
     ): TestExecutionResult {
+        debugger;
         const vulnerabilityConfirmed = this.assessVulnerability(testCase, 'success', broadcastResult);
 
         const testInputs = this.parseTestInputs(testCase.testInputs);

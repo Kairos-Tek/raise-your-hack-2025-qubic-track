@@ -45,7 +45,7 @@ export class ResultsDashboardComponent {
                     this.contractAnalysis = contractAnalysis;
                     this.createContractMethodsUI();
                     this.getTotalCases();
-                    // this.executeCases();
+                    this.executeCases();
                 },
                 error: (error) => {
                     console.error('Error generating test cases:', error);
@@ -70,7 +70,7 @@ export class ResultsDashboardComponent {
     getTotalCases() {
         this.contractMethods.forEach((methodUI) => {
             this.totalCases += methodUI.testCases.length;
-            this.testCasesExecuted += methodUI.testCases.filter(tc => tc.lastExecutedAt).length;
+            this.testCasesExecuted += methodUI.testCases.filter((tc) => tc.lastExecutedAt).length;
         });
     }
 
@@ -83,7 +83,7 @@ export class ResultsDashboardComponent {
                     if (result !== undefined) {
                         this.testCasesExecuted++;
                         const saveResult = await this.contractService.saveExecutionResults(result).toPromise();
-                        // Actualiza el testCase en contractMethods 
+
                         methodUI.testCases = methodUI.testCases.map((tc) => (tc.id === saveResult.id ? saveResult : tc));
                     } else {
                         console.warn('Test execution result is undefined for testCase:', testCase);

@@ -121,6 +121,7 @@ export class ContractService {
     }
 
     private sanitizeExecutionResultForSave(result: TestExecutionResult): any {
+        debugger;
         return {
             executionStatus: result.executionStatus,
             actualBehavior: result.actualBehavior,
@@ -147,14 +148,14 @@ export class ContractService {
                   }
                 : null,
             // Información básica de la transacción (sin objetos complejos)
-            transactionInfo: result.transaction ? result.transaction : null,
-            // Información del payload
-            payloadInfo: result.payload
-                ? {
-                      packageSize: result.payload.getPackageSize(),
-                      // No incluir los datos binarios completos para ahorrar espacio
-                  }
-                : null,
+            // transactionInfo: result.transaction ? result.transaction : null,
+            // // Información del payload
+            // payloadInfo: result.payload
+            //     ? {
+            //           packageSize: result.payload.getPackageSize(),
+            //           // No incluir los datos binarios completos para ahorrar espacio
+            //       }
+            //     : null,
             executedAt: new Date().toISOString(),
         };
     }
