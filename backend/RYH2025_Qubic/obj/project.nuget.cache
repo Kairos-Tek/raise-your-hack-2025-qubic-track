@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "bqNq/gdxnA8=",
+  "dgSpecHash": "KVlFhh54Mes=",
   "success": true,
   "projectFilePath": "C:\\Desarrollo\\Hackathon\\2025\\raise-your-hack-2025-qubic-track\\backend\\RYH2025_Qubic\\RYH2025_Qubic.csproj",
   "expectedPackageFiles": [
@@ -49,7 +49,10 @@
     "C:\\Users\\jesus\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
     "C:\\Users\\jesus\\.nuget\\packages\\system.text.encoding.codepages\\6.0.0\\system.text.encoding.codepages.6.0.0.nupkg.sha512",
     "C:\\Users\\jesus\\.nuget\\packages\\system.threading.channels\\6.0.0\\system.threading.channels.6.0.0.nupkg.sha512",
-    "C:\\Users\\jesus\\.nuget\\packages\\microsoft.netcore.app.crossgen2.win-x64\\8.0.12\\microsoft.netcore.app.crossgen2.win-x64.8.0.12.nupkg.sha512"
+    "C:\\Users\\jesus\\.nuget\\packages\\microsoft.netcore.app.runtime.linux-x64\\8.0.12\\microsoft.netcore.app.runtime.linux-x64.8.0.12.nupkg.sha512",
+    "C:\\Users\\jesus\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.linux-x64\\8.0.12\\microsoft.aspnetcore.app.runtime.linux-x64.8.0.12.nupkg.sha512",
+    "C:\\Users\\jesus\\.nuget\\packages\\microsoft.netcore.app.crossgen2.win-x64\\8.0.12\\microsoft.netcore.app.crossgen2.win-x64.8.0.12.nupkg.sha512",
+    "C:\\Users\\jesus\\.nuget\\packages\\microsoft.netcore.app.host.linux-x64\\8.0.12\\microsoft.netcore.app.host.linux-x64.8.0.12.nupkg.sha512"
   ],
   "logs": []
 }

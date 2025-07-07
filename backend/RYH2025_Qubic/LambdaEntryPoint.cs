@@ -4,7 +4,7 @@ namespace RYH2025_Qubic;
 /// This class extends from APIGatewayProxyFunction which contains the method FunctionHandlerAsync which is the 
 /// actual Lambda function entry point. The Lambda handler field should be set to
 /// 
-/// RYH2025-Qubic::RYH2025-Qubic.LambdaEntryPoint::FunctionHandlerAsync
+/// RYH2025_Qubic::RYH2025_Qubic.LambdaEntryPoint::FunctionHandlerAsync
 /// </summary>
 public class LambdaEntryPoint :
 

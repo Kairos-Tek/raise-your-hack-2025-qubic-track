@@ -58,12 +58,12 @@ If already installed check if new version is available.
 
 Execute unit tests
 ```
-    cd "RYH2025-Qubic/test/RYH2025-Qubic.Tests"
+    cd "RYH2025_Qubic/test/RYH2025_Qubic.Tests"
     dotnet test
 ```
 
 Deploy application
 ```
-    cd "RYH2025-Qubic/src/RYH2025-Qubic"
+    cd "RYH2025_Qubic/src/RYH2025-Qubic"
     dotnet lambda deploy-serverless
 ```
