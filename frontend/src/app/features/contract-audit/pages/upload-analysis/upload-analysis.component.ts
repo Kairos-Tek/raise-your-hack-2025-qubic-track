@@ -26,7 +26,7 @@ export class UploadAnalysisComponent {
         private router: Router,
     ) {
         this.form = this.fb.group({
-            nameAudit: ['', Validators.required],
+            // nameAudit: ['', Validators.required],
             file: [null, Validators.required],
         });
 
@@ -69,12 +69,12 @@ export class UploadAnalysisComponent {
 
         this.isLoading = true;
         const request: AnalyzeContractRequest = { file };
+
         this.contractService.analyzeContract(request).subscribe({
             next: (contractAnalysis) => {
                 console.log('Contract analyzed successfully:', contractAnalysis);
-                this.isLoading = false;
-                debugger;
                 this.contractAnalysis = contractAnalysis;
+                this.isLoading = false;
             },
             error: (error) => {
                 console.error('Error analyzing contract:', error);
