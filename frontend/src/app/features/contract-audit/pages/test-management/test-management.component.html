@@ -12,7 +12,7 @@
                 <p class="font-semibold text-sm text-aqua px-4 py-2">{{
                     this.contractAnalysis?.securityAudit?.securityTests?.length }} generated cases will be executed</p>
             </div>
-            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Execute">
+            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Execute" (click)="goToExecuteCases()">
                 <icon-play-circle class="w-5 h-5" />
             </app-primary-button>
         </div>

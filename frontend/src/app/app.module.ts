@@ -55,6 +55,7 @@ import { IconCubeComponent } from './shared/icon/icon-cube';
 import { CustomModalComponent } from './shared/components/modal/modal.component';
 import { IconMonitorComponent } from './shared/icon/icon-monitor';
 import { IconExperimentalComponent } from './shared/icon/icon-experimental';
+import { ProgressBarComponent } from './shared/components/progress-bar/progress-bar.component';
 
 @NgModule({
     imports: [
@@ -100,7 +101,8 @@ import { IconExperimentalComponent } from './shared/icon/icon-experimental';
         IconCubeComponent,
         CustomModalComponent,
         IconMonitorComponent,
-        IconExperimentalComponent
+        IconExperimentalComponent,
+        ProgressBarComponent
     ],
     providers: [Title],
     bootstrap: [AppComponent],

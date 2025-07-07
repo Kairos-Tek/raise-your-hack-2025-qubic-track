@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { colDef } from '@bhplugin/ng-datatable';
 import { ContractService } from 'src/app/service/contract.service';
 import { SecurityTestExecutorService } from 'src/app/service/security-test-executor.service';
@@ -29,6 +29,7 @@ export class TestManagementComponent {
         private route: ActivatedRoute,
         private contractService: ContractService,
         private securityTestExecutorService: SecurityTestExecutorService,
+        private router: Router
     ) {
         this.contractId = this.route.snapshot.paramMap.get('contractId');
 
@@ -97,5 +98,9 @@ export class TestManagementComponent {
     showDetails(testCase: SecurityTestCase) {
         this.selectedSecurityTestCase = testCase;
         this.showModal = true;
+    }
+
+    goToExecuteCases() {
+        this.router.navigate(['/audit/results/', this.contractId]);
     }
 }

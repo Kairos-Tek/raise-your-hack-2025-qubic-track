@@ -1,1 +1,14 @@
-<h2>Results Dashboard</h2>
+<div class="panel">
+    <h2 class="font-semibold text-lg text-white">Results Dashboard</h2>
+
+    <section class="mt-8">
+        <div class="flex flex-col gap-2">
+
+            <div class="flex items-center justify-between">
+                <p class="text-sm">This preocess usually takes about a minute</p>
+                <p class="text-sm text-white">57/126 completed</p>
+            </div>
+            <app-progress-bar [progress]="45"></app-progress-bar>
+        </div>
+    </section>
+</div>
