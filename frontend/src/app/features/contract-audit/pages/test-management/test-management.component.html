@@ -12,7 +12,14 @@
                 <p class="font-semibold text-sm text-aqua px-4 py-2">{{
                     this.contractAnalysis?.securityAudit?.securityTests?.length }} generated cases will be executed</p>
             </div>
-            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Execute" (click)="goToExecuteCases()">
+            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Download" (click)="download()">
+            </app-primary-button>
+            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Execute (De verdad)"
+                (click)="executeCasesDeVerdad()">
+                <icon-play-circle class="w-5 h-5" />
+            </app-primary-button>
+            <app-primary-button type="button" [disabled]="false" [loading]="false" text="Execute"
+                (click)="goToExecuteCases()">
                 <icon-play-circle class="w-5 h-5" />
             </app-primary-button>
         </div>
@@ -31,6 +38,7 @@
                             [pagination]="false" skin="whitespace-nowrap bh-table-hover">
                             <ng-template slot="action" let-value="data">
                                 <div class="text-center">
+                                    <h1 *ngIf="value.lastExecutedAt">EJECUTADO</h1>
                                     <button type="button" class="text-accent flex items-center gap-2 border"
                                         (click)="showDetails(value)">
                                         <icon-eye class="size-5" />

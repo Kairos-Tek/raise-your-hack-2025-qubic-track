@@ -29,7 +29,7 @@ export class TestManagementComponent {
         private route: ActivatedRoute,
         private contractService: ContractService,
         private securityTestExecutorService: SecurityTestExecutorService,
-        private router: Router
+        private router: Router,
     ) {
         this.contractId = this.route.snapshot.paramMap.get('contractId');
 
@@ -78,13 +78,23 @@ export class TestManagementComponent {
     }
 
     createContractMethodsUI() {
-        this.contractMethods = this.contractAnalysis?.methods.map((method) => {
-            return <ContractMethodUI>{
-                method: method,
-                subtitle: this.getCardSubtitle(method),
-                testCases: this.getSecurityTestCases(method),
-            };
-        })!;
+        this.contractMethods = this.contractAnalysis?.methods
+            .sort((a, b) => {
+                if (a.type !== b.type) {
+                    if (a.type === 'PROCEDURE') return -1;
+                    if (b.type === 'PROCEDURE') return 1;
+                    return 0;
+                }
+
+                return a.procedureIndex! - b.procedureIndex!;
+            })
+            .map((method) => {
+                return <ContractMethodUI>{
+                    method: method,
+                    subtitle: this.getCardSubtitle(method),
+                    testCases: this.getSecurityTestCases(method),
+                };
+            })!;
     }
 
     getCardSubtitle(method: ContractMethod): string {
@@ -102,5 +112,37 @@ export class TestManagementComponent {
 
     goToExecuteCases() {
         this.router.navigate(['/audit/results/', this.contractId]);
+    }
+
+    executeCasesDeVerdad() {
+        this.contractMethods.forEach((methodUI) => {
+            methodUI.testCases.forEach((testCase) => {
+                this.securityTestExecutorService.executeSecurityTest(testCase, methodUI.method).subscribe({
+                    next: (result) => {
+                        debugger; // For debugging purposes, you can remove this later
+                        this.contractService.saveExecutionResults(result).subscribe({
+                            next: (saveResult) => {
+                                testCase = saveResult;
+                                this.contractMethods = this.contractMethods.map((m) => {
+                                    if (m.method.id === methodUI.method.id) {
+                                        return {
+                                            ...m,
+                                            testCases: m.testCases.map((tc) => (tc.id === testCase.id ? testCase : tc)),
+                                        };
+                                    } else {
+                                        return { ...m };
+                                    }
+                                });
+                            },
+                        });
+                        console.log('All tests executed successfully:', result);
+                    },
+                    error: (error) => {
+                        debugger; // For debugging purposes, you can remove this later
+                        console.error('Error executing all tests:', error);
+                    },
+                });
+            });
+        });
     }
 }

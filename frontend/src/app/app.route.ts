@@ -15,9 +15,9 @@ export const routes: Routes = [
         children: [
             // dashboard
             { path: '', component: UploadAnalysisComponent, data: { title: 'Upload Analysis' } },
-            { path: 'audit/results', component: ResultsDashboardComponent, data: { title: 'Results Dashboard' } },
             { path: 'audit/upload', component: UploadAnalysisComponent, data: { title: 'Upload Analysis' } },
             { path: 'audit/test/:contractId', component: TestManagementComponent, data: { title: 'Test Management' } },
+            { path: 'audit/results/:contractId', component: ResultsDashboardComponent, data: { title: 'Results Dashboard' } },
         ],
     },
 

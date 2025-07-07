@@ -13,4 +13,6 @@ export interface SecurityTestCase {
     createdAt: string;
     testInputs: { [key: string]: any };
     mitigationSteps: string[];
+    executionResultJson: string;
+    lastExecutedAt: Date | null;
 }

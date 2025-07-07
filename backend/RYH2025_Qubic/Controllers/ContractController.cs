@@ -80,19 +80,10 @@ namespace RYH2025_Qubic.Controllers
                 });
 
                 testCase.LastExecutedAt = DateTime.UtcNow;
-                testCase.ExecutionStatus = request.ExecutionResult.ExecutionStatus;
-                testCase.VulnerabilityConfirmed = request.ExecutionResult.SecurityAssessment?.VulnerabilityConfirmed;
-                testCase.RiskLevel = request.ExecutionResult.SecurityAssessment?.RiskLevel;
 
                 await _dbContext.SaveChangesAsync();
 
-                return Ok(new
-                {
-                    message = "Execution result saved successfully",
-                    testCaseId = request.TestCaseId,
-                    executionStatus = testCase.ExecutionStatus,
-                    vulnerabilityConfirmed = testCase.VulnerabilityConfirmed
-                });
+                return Ok(testCase);
             }
             catch (Exception ex)
             {

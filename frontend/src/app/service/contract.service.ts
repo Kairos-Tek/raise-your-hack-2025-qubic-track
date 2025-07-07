@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { ContractAnalysis } from '../shared/models/contract-analysis.model';
 import { TestExecutionResult } from '../shared/models/test-execution-result.model';
+import { SecurityTestCase } from '../shared/models/security-test-case.model';
 
 @Injectable({
     providedIn: 'root',
@@ -116,7 +117,7 @@ export class ContractService {
             executionResult: this.sanitizeExecutionResultForSave(result),
         };
 
-        return this.http.post(`${environment.apiUrl}/api/security-test-cases/save-execution-result`, payload);
+        return this.http.post<SecurityTestCase>(`${this.apiUrl}/save-execution-result`, payload);
     }
 
     private sanitizeExecutionResultForSave(result: TestExecutionResult): any {

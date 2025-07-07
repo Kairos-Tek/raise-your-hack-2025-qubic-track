@@ -10,8 +10,8 @@ import { Long } from '@qubic-lib/qubic-ts-library/dist//qubic-types/Long';
 import { QubicDefinitions } from '@qubic-lib/qubic-ts-library/dist//QubicDefinitions';
 import { DynamicPayload } from '@qubic-lib/qubic-ts-library/dist//qubic-types/DynamicPayload';
 import { QubicPackageBuilder } from '@qubic-lib/qubic-ts-library/dist//QubicPackageBuilder';
+import { encodeParams } from './contractUtils';
 
-import { TestExecutionResult } from '../shared/models/test-execution-result.model';
 import { TestExecutionConfig } from '../shared/models/test-execution-config.model';
 import { ContractMethod } from '../shared/models/contract-method.models';
 import { SecurityTestCase } from '../shared/models/security-test-case.model';
@@ -27,6 +27,8 @@ import { TickInfoResponse } from '../shared/models/tick-info.response.model';
 import { environment } from 'src/environments/environment';
 import { QuerySmartContractResponse } from '../shared/models/query-smart-contract-response';
 import { QuerySmartContractRequest } from '../shared/models/query-smart-contract-request';
+import { TestExecutionResult } from '../shared/models/test-execution-result.model';
+import { Buffer } from 'buffer';
 
 type ExecutionStatus = 'success' | 'failed' | 'rejected' | 'error';
 
@@ -685,36 +687,6 @@ export class SecurityTestExecutorService {
         return typeMap[qubicType] || qubicType;
     }
 
-    /**
-     * Wrapper para encodeParams del contractUtils
-     * Nota: Necesitarás importar encodeParams desde tu contractUtils
-     */
-    private encodeParams(params: Record<string, any>, inputFields: any[]): string {
-        // Aquí necesitarás importar la función encodeParams desde tu contractUtils
-        // import { encodeParams } from './path/to/contractUtils';
-
-        // Por ahora, como placeholder, simularemos la función
-        // En tu implementación real, reemplaza esto con:
-        // return encodeParams(params, inputFields, this.qubicHelper);
-
-        console.log('🔧 Encoding params:', params, 'with fields:', inputFields);
-
-        // Placeholder - reemplazar con import real
-        try {
-            // Si no tienes qubicHelper disponible, puedes pasarlo como null por ahora
-            // return encodeParams(params, inputFields, null);
-
-            // Por ahora retornamos string vacío - actualiza cuando importes encodeParams
-            return '';
-        } catch (error) {
-            console.error('Error encoding params:', error);
-            return '';
-        }
-    }
-
-    /**
-     * Ejecuta query en smart contract para funciones (no procedures)
-     */
     private querySmartContract(
         method: ContractMethod,
         inputs: Record<string, PublicKey | Long | boolean | string | any[]>,
@@ -828,7 +800,8 @@ export class SecurityTestExecutorService {
         });
 
         // Usar encodeParams del contractUtils
-        const encodedData = this.encodeParams(primitiveInputs, inputFieldsForEncode);
+        debugger;
+        const encodedData = encodeParams(primitiveInputs, inputFieldsForEncode);
 
         console.log(`📦 Encoded data length: ${encodedData.length}`);
 
