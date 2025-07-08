@@ -1,6 +1,6 @@
 ![Qbuild logo](qbuild-logo.png)
 
-## What is Qubild
+## What is Qbild
 
 Qbuild is a fully functional platform that allows you to quickly and easily audit any Qubic smart contract, identifying potential vulnerabilities and generating automatically a comprehensive audit report.
 
