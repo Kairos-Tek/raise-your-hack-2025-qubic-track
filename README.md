@@ -11,7 +11,7 @@ Qbuild not only process automatically your smart contract to identify vulnerabil
 The platform deploys the smart contract in a controlled Qubic testing environment, building automatically a complete battery of tests to exploit each vulnerability, calling the identified smart contract procedures and/or functions with specific payload or arguments, allowing developers to verify the real impact of each potential vulnerability without the need to build any specific test tool.
 Just fasten your seatbelt, keep your seat upright, and press the button to see what happens!
 
-Learn more about Qbuild at [[Qubic Kairos website]](https://qbuild-pre.kairos-tek.com/) and test your smart contracts (if you dare...).
+Learn more about Qbuild and test your smart contracts (if you dare...) at the [Qbuild website built in Raise Your Hack](https://qbuild-pre.kairos-tek.com/).
 
 Disclaimer: depending the vulnerabilities, even Qubic test node could hang… believe us, we know how to do it!
 
