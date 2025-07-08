@@ -76,7 +76,7 @@ This repository contains three main projects:
    - Enthusiastic programmer with over 7 years of experience in web development. Committed to developing excellent solutions. 
    - **LinkedIn:** [Max García](https://www.linkedin.com/in/maximiliano-daniel-garc%C3%ADa-716705229/)
      
- - **Alberto García (RSE and Product Development)**
+ - **Alberto García (Blockchain RSE)**
    - Computer Engineer from Universidad Carlos III de Madrid and holder of a Master's Degree in Blockchain, Smart Contracts, and CryptoEconomics from Universidad de Alcalá. He brings over eight years of hands-on experience in Business Intelligence and Big Data, and more than seven years in Blockchain technology, working across sectors such as Banking, Retail, Insurance, and Telecommunications. He worked for 7 years a Technical Specialist and Product Manager at Telefónica’s Blockchain team.
    - **LinkedIn:** [Alberto García](https://www.linkedin.com/in/okalberto/)
 
