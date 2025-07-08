@@ -72,7 +72,7 @@ This repository contains three main projects:
   - His current focus is on developing AI-based and Web3 projects.
   - **LinkedIn:** [Jesús Lanzarote](https://www.linkedin.com/in/jesus-lanzarote/)
 
-  - **Max García (Full Stack Development)**
+- **Max García (Full Stack Development)**
    - Enthusiastic programmer with over 7 years of experience in web development. Committed to developing excellent solutions. 
    - **LinkedIn:** [Max García](https://www.linkedin.com/in/maximiliano-daniel-garc%C3%ADa-716705229/)
      
