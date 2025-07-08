@@ -87,4 +87,4 @@ Contact us for more information and become an early user when Qbuild is availabl
 - [Qbuild X account](https://x.com/_qbuild_)
 - [Kairos X account](https://x.com/kairos_tek)
 - [qbuild@kairos-tek.com](mailto:qbuild@kairos-tek.com)
-- [Kairos wesite](https:/kairos-tek.com)
+- [Kairos wesite](https://kairos-tek.com)
