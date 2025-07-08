@@ -56,6 +56,7 @@ import { CustomModalComponent } from './shared/components/modal/modal.component'
 import { IconMonitorComponent } from './shared/icon/icon-monitor';
 import { IconExperimentalComponent } from './shared/icon/icon-experimental';
 import { ProgressBarComponent } from './shared/components/progress-bar/progress-bar.component';
+import { IconRocketComponent } from './shared/icon/icon-rocket';
 
 @NgModule({
     imports: [
@@ -102,7 +103,8 @@ import { ProgressBarComponent } from './shared/components/progress-bar/progress-
         CustomModalComponent,
         IconMonitorComponent,
         IconExperimentalComponent,
-        ProgressBarComponent
+        ProgressBarComponent,
+        IconRocketComponent
     ],
     providers: [Title],
     bootstrap: [AppComponent],

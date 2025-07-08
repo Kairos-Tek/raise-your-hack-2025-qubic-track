@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 
 // dashboard
-import { IndexComponent } from './index';
 import { AppLayout } from './layouts/app-layout';
 import { AuthLayout } from './layouts/auth-layout';
 import { ResultsDashboardComponent } from './features/contract-audit/pages/results-dashboard/results-dashboard.component';
