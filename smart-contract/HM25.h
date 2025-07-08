@@ -101,6 +101,6 @@ private:
     INITIALIZE
         state.var1 = 1;
         // state.var2 = 2; Risk: Non initialized variable
-        state.var3 = 3;
+        state.var3 = 3; 
     _
 };
