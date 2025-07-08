@@ -15,7 +15,7 @@ Learn more about Qbuild and test your smart contracts (if you dare...) at the [Q
 
 *Disclaimer: depending the vulnerabilities, even Qubic test node could hang… believe us, we know how to do it!*
 
-## Qbuild Technologies
+## Qbuild technologies
 
 QBuild integrates a wide range of technologies to provide a seamless and powerful development experience for Qubic smart contracts.
 
@@ -32,7 +32,7 @@ The backend is built on .NET 8.0, and the full infrastructure is hosted on AWS:
 
 QBuild is a fully functional and scalable platform, built with modern tools to meet the needs of developers building on Qubic.
 
-## Repository Structure
+## Repository structure
 
 This repository contains three main projects:
 
