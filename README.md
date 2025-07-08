@@ -84,6 +84,7 @@ This repository contains three main projects:
 
 Contact us for more information and become an early user when Qbuild is available!:
 
-X: https://x.com/_qbuild_
-email: qbuild@kairos-tek.com
-Web: kairos-tek.com
+[Qubuild X account](https://x.com/_qbuild_)
+[Kairos X account](https://x.com/kairos-tek)
+[qbuild@kairos-tek.com](mailto:qbuild@kairos-tek.com)
+[Kairos wesite](https:/kairos-tek.com)
