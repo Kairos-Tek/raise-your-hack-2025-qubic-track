@@ -1,3 +1,5 @@
+![Qbuild logo](qbuild-logo.png)
+
 # Monorepo: Angular Frontend + .NET 8 API
 
 This repository contains two main projects:
