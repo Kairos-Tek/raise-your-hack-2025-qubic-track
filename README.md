@@ -15,7 +15,7 @@ Learn more about Qbuild and test your smart contracts (if you dare...) at the [Q
 
 *Disclaimer: depending the vulnerabilities, even Qubic test node could hang… believe us, we know how to do it!*
 
-## Kairos team
+## Kairos team at Rise Your Hack
 
 [Kairos](https://www.kairos-tek.com/), the award-winning team at the [first Qubic hackathon](https://x.com/MillyCrypto_/status/1903936236093403637) with [Easy Connect](https://www.kairos-tek.com/easyconnect), currently part of the [Qubic ecosystem](https://qubic.org/ecosystem/easy-connect), has developed Qbuild, the ultimate solution for facilitating the secure development of smart contracts on this network.
 
@@ -36,14 +36,6 @@ Learn more about Qbuild and test your smart contracts (if you dare...) at the [Q
   - Co-founder and CTO of Loiband. He has been programming for over 25 years and has worked in the startup world for 15 years, where he has participated in all types of projects across multiple areas (eHealth, services, insurance, legal, etc.), leading teams and directly participating in design and development.
   - His current focus is on developing AI-based and Web3 projects.
   - **LinkedIn:** [Jesús Lanzarote](https://www.linkedin.com/in/jesus-lanzarote/)
-
-### 10.2 External collaborators
-
-- **Pablo F. Burgueño (Advisor)**
-  - Cofounder of NevTrace and a lawyer specializing in cybersecurity, privacy, and LegalTech law. He currently works as a lawyer and professor at ESIC, and he is a member of INMERSIVA XR, DENAE, and ASEDA, as well as the data protection and cryptoasset spaces of the European Cybercrime Centre at Europol.
-  - **LinkedIn (+13,000 followers):** [Pablo F. Burgueño](https://www.linkedin.com/in/pablofb/)
-  - **X (+8,000 followers):** [@pablofb](https://x.com/pablofb)
-  - **Farcaster (+2,000 followers):** [@pablofb](https://warpcast.com/pablofb)
  
  - **Alberto García (RSE and Product Development)**
    - Computer Engineer from Universidad Carlos III de Madrid and holder of a Master's Degree in Blockchain, Smart Contracts, and CryptoEconomics from Universidad de Alcalá. He brings over eight years of hands-on experience in Business Intelligence and Big Data, and more than seven years in Blockchain technology, working across sectors such as Banking, Retail, Insurance, and Telecommunications. He worked for 7 years a Technical Specialist and Product Manager at Telefónica’s Blockchain team.
