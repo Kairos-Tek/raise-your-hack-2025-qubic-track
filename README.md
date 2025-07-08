@@ -13,7 +13,7 @@ Just fasten your seatbelt, keep your seat upright, and press the button to see w
 
 Learn more about Qbuild and test your smart contracts (if you dare...) at the [Qbuild website built in Raise Your Hack](https://qbuild-pre.kairos-tek.com/).
 
-Disclaimer: depending the vulnerabilities, even Qubic test node could hang… believe us, we know how to do it!
+*Disclaimer: depending the vulnerabilities, even Qubic test node could hang… believe us, we know how to do it!*
 
 ## Kairos team
 
